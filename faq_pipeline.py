@@ -12,7 +12,8 @@ async def load_html(url):
 
 def extract_from_html(html):
     bs_transformer = BeautifulSoupTransformer()
-    docs_transformed = bs_transformer.transform_documents(html, tags_to_extract=["span"])
+    tags_to_extract = ["p", "span", "div", "h1", "h2", "h3", "h4", "h5", "h6"]
+    docs_transformed = bs_transformer.transform_documents(html, tags_to_extract=tags_to_extract)
     doc_string = ""
     for doc in docs_transformed:
         doc_string += doc.page_content
@@ -21,15 +22,14 @@ def extract_from_html(html):
 def summarize_content(doc_string):
     summarizer = pipeline("summarization", model="facebook/bart-large-cnn", device="cpu")
     max_chunk_size = 1000
-    inputs = summarizer.tokenizer(doc_string, return_tensors="pt", truncation=False, clean_up_tokenization_space=True)
+    inputs = summarizer.tokenizer(doc_string, return_tensors="pt", truncation=False)
     tokens = inputs.input_ids[0]
     chunks = [tokens[i:i+max_chunk_size] for i in range(0, len(tokens), max_chunk_size)]
-    summaries = []
-    for chunk in chunks:
-        chunk_text = summarizer.tokenizer.decode(chunk, skip_special_tokens=True)
-        summary = summarizer(chunk_text, max_length=1000, truncation=True)[0]['summary_text']
-        summaries.append(summary)
-    final_summary = " ".join(summaries)
+    batch_chunk_texts = [summarizer.tokenizer.decode(chunk, skip_special_tokens=True) for chunk in chunks]
+    # summaries = []
+    summaries = summarizer(batch_chunk_texts, max_length=1000, truncation=True) 
+    summary_texts = [summary['summary_text'] for summary in summaries]
+    final_summary = " ".join(summary_texts)
     return final_summary
 
 def prompt_llm(final_summary):
@@ -38,6 +38,7 @@ def prompt_llm(final_summary):
     that will help readers understand the content better then provide
     informative answers to these questions.
     Provide these answers in the format Question: Answer
+    Make sure you don't use LaTeX in your questions and answers.
     """
 
 
