@@ -4,3 +4,4 @@ transformers
 openai
 bs4
 tensorflow
+tf-keras
