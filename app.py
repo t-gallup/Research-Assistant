@@ -68,21 +68,10 @@ async def generate_faq(url):
             st.write(answers[i])
     st.write(f"Article Summary: {final_summary}")
     
-    # for topic in topic_list:
-    #     results = fp.search_google(topic)
-    #     new_rec_titles, new_rec_links = fp.get_top_5_articles(results, url)
-    #     rec_titles += new_rec_titles
-    #     rec_links += new_rec_links
-        # print(topic)
-    # print(topic_list)
-    
     st.sidebar.header("Recommended Articles")
     for i, title in enumerate(rec_titles):
         if st.sidebar.button(title, key=i, on_click=set_url, args=(rec_links[i],)):
-            # set_url(rec_links[i])
             generate_faq(rec_links[i])
-    # st.sidebar.selectbox("Choose an article: ", rec_titles)
 
 if url:
-    # with st.spinner("Generating FAQ..."):
     asyncio.run(generate_faq(url))

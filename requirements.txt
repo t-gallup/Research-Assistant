@@ -1,0 +1,6 @@
+streamlit
+langchain_community
+transformers
+openai
+bs4
+tensorflow

@@ -108,6 +108,4 @@ def get_top_5_articles(results, past_url):
         if 'items' in results and results['items'][i]['link'] != past_url:
             titles.append(results['items'][i]['title'])
             links.append(results['items'][i]['link'])
-        else:
-            print(results)
     return titles, links
