@@ -10,11 +10,11 @@ importlib.reload(fp)
 def set_url(url):
     st.session_state.url_input = url
 
-st.set_page_config(page_title="FAQ Generator",
-                    page_icon="faq-logo.png"
+st.set_page_config(page_title="Q&A Generator",
+                    page_icon="qa-logo.png"
 )
 st.cache_data.clear()
-st.title("FAQ Generator")
+st.title("Q&A Generator")
 
 st.markdown("""
     <style>
@@ -30,21 +30,29 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-url = st.text_input("Enter website URL to generate an FAQ for:", key='url_input')
+url = st.text_input("Enter website URL to learn about:", key='url_input')
 async def generate_faq(url):
     status_text = st.empty()
     progress_bar = st.progress(0)
 
     status_text.text("Loading website content...")
-    html = await fp.load_html(url)
-    doc_string, article_title = fp.extract_from_html(html)
+    file_type = fp.check_file_type(url)
+    doc_string, article_title = "", ""
+    if file_type == "html":
+        html = await fp.load_html(url)
+        doc_string, article_title = fp.extract_from_html(html)
+    elif file_type == "pdf":
+        pdf, response = fp.load_pdf(url)
+        doc_string, article_title = fp.extract_from_pdf(pdf, response)
+    # else:
+
     progress_bar.progress(33)
 
     status_text.text("Summarizing content...")
     final_summary = fp.summarize_content(doc_string)
     progress_bar.progress(66)
 
-    status_text.text("Generating FAQ...")
+    status_text.text("Generating Q&A...")
     topic_list = fp.prompt_llm_for_related_topics(final_summary)
     rec_titles, rec_links = [], []
     results = fp.search_google(topic_list[0])
@@ -60,7 +68,7 @@ async def generate_faq(url):
 
     progress_bar.progress(100)
 
-    status_text.text("FAQ generation complete...")
+    status_text.text("Q&A generation complete...")
     st.markdown(f"## {article_title}")
     for i in range(len(questions)):
         expand_faq = st.expander(questions[i])

@@ -1,12 +1,27 @@
 from langchain_community.document_loaders import AsyncHtmlLoader
 from langchain_community.document_transformers import BeautifulSoupTransformer
+from langchain_community.document_loaders import PyPDFLoader
 from transformers import pipeline
+from tempfile import NamedTemporaryFile
+from PyPDF2 import PdfReader
+from io import BytesIO
 import openai
 import re
 import os
 import requests
 import tensorflow as tf
 import ast
+
+def check_file_type(url):
+    response = requests.head(url, allow_redirects=True)
+    content_type = response.headers.get('Content-Type', '').lower()
+    
+    if 'application/pdf' in content_type:
+        return 'pdf'
+    elif 'text/html' in content_type:
+        return 'html'
+    else:
+        return 'unknown'
 
 async def load_html(url):
     loader = AsyncHtmlLoader(url)
@@ -24,10 +39,31 @@ def extract_from_html(html):
     article_title = titles_transformed[0].metadata['title']
     return doc_string, article_title
 
+def load_pdf(url):
+    response = requests.get(url)
+    with NamedTemporaryFile(suffix=".pdf", delete=False) as temp_pdf:
+        temp_pdf.write(response.content)
+        temp_pdf_path = temp_pdf.name
+    loader = PyPDFLoader(temp_pdf_path)
+    pdf = loader.load()
+    os.remove(temp_pdf_path)
+    return pdf, response
+
+def extract_from_pdf(pdf, response):
+    doc_string = ""
+    for doc in pdf:
+        doc_string += doc.page_content
+
+    pdf_content = BytesIO(response.content)
+    reader = PdfReader(pdf_content)
+    metadata = reader.metadata
+    article_title = metadata.title if metadata.title else ""
+    return doc_string, article_title
+
 def summarize_content(doc_string):
     physical_devices = tf.config.list_physical_devices('GPU')
     if physical_devices:
-        print("GPU detected, using GPU for summarization")
+        print("GPU detected, using GPU")
         device = 0
     else:
         print("No GPU detected, using CPU")
@@ -38,7 +74,7 @@ def summarize_content(doc_string):
     tokens = inputs.input_ids[0]
     chunks = [tokens[i:i+max_chunk_size] for i in range(0, len(tokens), max_chunk_size)]
     batch_chunk_texts = [summarizer.tokenizer.decode(chunk, skip_special_tokens=True) for chunk in chunks]
-    summaries = summarizer(batch_chunk_texts, max_length=1000, truncation=True) 
+    summaries = summarizer(batch_chunk_texts, max_length=300, truncation=True) 
     summary_texts = [summary['summary_text'] for summary in summaries]
     final_summary = " ".join(summary_texts)
     return final_summary
@@ -52,8 +88,6 @@ def prompt_llm(final_summary):
     Provide these answers in the format Question: Answer
     Make sure you don't use LaTeX in your questions and answers.
     """
-
-
     response = openai.chat.completions.create(
     model="gpt-3.5-turbo",
     messages=[

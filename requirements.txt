@@ -5,3 +5,4 @@ openai
 bs4
 tensorflow
 tf-keras
+PyPDF2
