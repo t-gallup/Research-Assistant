@@ -74,7 +74,7 @@ def summarize_content(doc_string):
     tokens = inputs.input_ids[0]
     chunks = [tokens[i:i+max_chunk_size] for i in range(0, len(tokens), max_chunk_size)]
     batch_chunk_texts = [summarizer.tokenizer.decode(chunk, skip_special_tokens=True) for chunk in chunks]
-    summaries = summarizer(batch_chunk_texts, max_length=300, truncation=True) 
+    summaries = summarizer(batch_chunk_texts, max_length=100, truncation=True) 
     summary_texts = [summary['summary_text'] for summary in summaries]
     final_summary = " ".join(summary_texts)
     return final_summary
@@ -85,7 +85,8 @@ def prompt_llm(final_summary):
     that will help readers understand the content better then provide
     informative answers to these questions.
     Only give questions that can be answered from the content of the article.
-    Provide these answers in the format Question: Answer
+    Ensure each question is immediately followed by its answer without adding any labels like "Question" or "Answer". 
+    Just output the question followed directly by the answer.
     Make sure you don't use LaTeX in your questions and answers.
     """
     response = openai.chat.completions.create(
@@ -124,7 +125,7 @@ def prompt_llm_for_related_topics(final_summary):
 
 def search_google(query):
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-    SEARCH_ENGINE_ID = "f35b11676565b4fb5"
+    SEARCH_ENGINE_ID = os.getenv("SEARCH_ENGINE_ID")
     url = f"https://www.googleapis.com/customsearch/v1"
     params = {
         "key": GOOGLE_API_KEY,

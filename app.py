@@ -69,8 +69,9 @@ async def generate_faq(url):
     progress_bar.progress(100)
 
     status_text.text("Q&A generation complete...")
-    st.markdown(f"## {article_title}")
-    for i in range(len(questions)):
+    if article_title != "":
+        st.markdown(f"## {article_title}")
+    for i in range(min(len(questions), len(answers))):
         expand_faq = st.expander(questions[i])
         with expand_faq:
             st.write(answers[i])
