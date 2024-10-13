@@ -1,17 +1,17 @@
 import streamlit as st
-import faq_pipeline as fp
+import rag_pipeline as rp
 import asyncio
 import warnings
 import importlib
 
 warnings.filterwarnings("ignore")
-importlib.reload(fp)
+importlib.reload(rp)
 
 def set_url(url):
     st.session_state.url_input = url
 
 st.set_page_config(page_title="Q&A Generator",
-                    page_icon="qa-logo.png"
+                    page_icon="images/qa-logo.png"
 )
 st.cache_data.clear()
 st.title("Q&A Generator")
@@ -36,33 +36,33 @@ async def generate_faq(url):
     progress_bar = st.progress(0)
 
     status_text.text("Loading website content...")
-    file_type = fp.check_file_type(url)
+    file_type = rp.check_file_type(url)
     doc_string, article_title = "", ""
     if file_type == "html":
-        html = await fp.load_html(url)
-        doc_string, article_title = fp.extract_from_html(html)
+        html = await rp.load_html(url)
+        doc_string, article_title = rp.extract_from_html(html)
     elif file_type == "pdf":
-        pdf, response = fp.load_pdf(url)
-        doc_string, article_title = fp.extract_from_pdf(pdf, response)
+        pdf, response = rp.load_pdf(url)
+        doc_string, article_title = rp.extract_from_pdf(pdf, response)
     # else:
 
     progress_bar.progress(33)
 
     status_text.text("Summarizing content...")
-    final_summary = fp.summarize_content(doc_string)
+    final_summary = rp.summarize_content(doc_string)
     progress_bar.progress(66)
 
     status_text.text("Generating Q&A...")
-    topic_list = fp.prompt_llm_for_related_topics(final_summary)
+    topic_list = rp.prompt_llm_for_related_topics(final_summary)
     rec_titles, rec_links = [], []
-    results = fp.search_google(topic_list[0])
-    new_rec_titles, new_rec_links = fp.get_top_5_articles(results, url)
+    results = rp.search_google(topic_list[0])
+    new_rec_titles, new_rec_links = rp.get_top_5_articles(results, url)
     rec_titles += new_rec_titles
     rec_links += new_rec_links
-    questions, answers = fp.prompt_llm(final_summary)
+    questions, answers = rp.prompt_llm(final_summary)
     
-    results = fp.search_google(topic_list[1])
-    new_rec_titles, new_rec_links = fp.get_top_5_articles(results, url)
+    results = rp.search_google(topic_list[1])
+    new_rec_titles, new_rec_links = rp.get_top_5_articles(results, url)
     rec_titles += new_rec_titles
     rec_links += new_rec_links
 
