@@ -12,6 +12,7 @@ import requests
 import tensorflow as tf
 import ast
 
+
 def check_file_type(url):
     response = requests.head(url, allow_redirects=True)
     content_type = response.headers.get('Content-Type', '').lower()
@@ -23,10 +24,12 @@ def check_file_type(url):
     else:
         return 'unknown'
 
+
 async def load_html(url):
     loader = AsyncHtmlLoader(url)
     html = loader.load()
     return html
+
 
 def extract_from_html(html):
     bs_transformer = BeautifulSoupTransformer()
@@ -39,6 +42,7 @@ def extract_from_html(html):
     article_title = titles_transformed[0].metadata['title']
     return doc_string, article_title
 
+
 def load_pdf(url):
     response = requests.get(url)
     with NamedTemporaryFile(suffix=".pdf", delete=False) as temp_pdf:
@@ -48,6 +52,7 @@ def load_pdf(url):
     pdf = loader.load()
     os.remove(temp_pdf_path)
     return pdf, response
+
 
 def extract_from_pdf(pdf, response):
     doc_string = ""
@@ -59,6 +64,7 @@ def extract_from_pdf(pdf, response):
     metadata = reader.metadata
     article_title = metadata.title if metadata.title else ""
     return doc_string, article_title
+
 
 def summarize_content(doc_string):
     physical_devices = tf.config.list_physical_devices('GPU')
@@ -78,6 +84,7 @@ def summarize_content(doc_string):
     summary_texts = [summary['summary_text'] for summary in summaries]
     final_summary = " ".join(summary_texts)
     return final_summary
+
 
 def prompt_llm(final_summary):
     prompt = f"""
@@ -103,6 +110,7 @@ def prompt_llm(final_summary):
     answers = [faq for i, faq in enumerate(faq_list) if i % 2 == 1]
     return questions, answers
 
+
 def prompt_llm_for_related_topics(final_summary):
     prompt = f"""
     Based on the following content: {final_summary} generate exactly 2 topics
@@ -126,7 +134,7 @@ def prompt_llm_for_related_topics(final_summary):
 def search_google(query):
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
     SEARCH_ENGINE_ID = os.getenv("SEARCH_ENGINE_ID")
-    url = f"https://www.googleapis.com/customsearch/v1"
+    url = "https://www.googleapis.com/customsearch/v1"
     params = {
         "key": GOOGLE_API_KEY,
         "cx": SEARCH_ENGINE_ID,
@@ -135,6 +143,7 @@ def search_google(query):
     response = requests.get(url, params=params)
     results = response.json()
     return results
+
 
 def get_top_5_articles(results, past_url):
     titles = []

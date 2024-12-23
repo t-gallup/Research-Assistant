@@ -1,5 +1,5 @@
 import React from 'react';
-import QnAGenerator from './components/QnAGenerator.tsx';
+import QnAGenerator from './components/QnAGenerator';
 
 function App() {
   return (
