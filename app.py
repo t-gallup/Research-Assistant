@@ -1,5 +1,5 @@
 import streamlit as st
-import rag_pipeline as rp
+import backend.rag_pipeline as rp
 import asyncio
 import warnings
 import importlib
