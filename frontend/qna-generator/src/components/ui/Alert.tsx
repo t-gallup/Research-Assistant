@@ -1,31 +1,40 @@
-import * as React from "react"
+import * as React from "react";
+import { cn } from "./lib/utils";
 
-interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {}
+const Alert = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { variant?: "destructive" }
+>(({ className, variant, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-lg border p-4",
+      variant === "destructive"
+        ? "border-destructive bg-destructive text-destructive-foreground"
+        : "border-muted-foreground bg-muted-foreground text-muted-foreground",
+      className
+    )}
+    {...props}
+  />
+));
+Alert.displayName = "Alert";
 
-const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
-  ({ className, children, ...props }, ref) => (
-    <div
-      ref={ref}
-      role="alert"
-      className={`relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground ${className}`}
-      {...props}
-    >
-      {children}
-    </div>
-  )
-)
-Alert.displayName = "Alert"
+const AlertTitle = React.forwardRef<
+  HTMLHeadingElement,
+  React.HTMLAttributes<HTMLHeadingElement> & { children: React.ReactNode }
+>(({ className, children, ...props }, ref) => (
+  <h3 ref={ref} className={cn("text-lg font-semibold", className)} {...props}>
+    {children}
+  </h3>
+));
+AlertTitle.displayName = "AlertTitle";
 
 const AlertDescription = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={`text-sm [&_p]:leading-relaxed ${className}`}
-    {...props}
-  />
-))
-AlertDescription.displayName = "AlertDescription"
+  <p ref={ref} className={cn("text-sm", className)} {...props} />
+));
+AlertDescription.displayName = "AlertDescription";
 
-export { Alert, AlertDescription }
+export { Alert, AlertTitle, AlertDescription };

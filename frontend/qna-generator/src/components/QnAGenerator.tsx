@@ -7,39 +7,50 @@ import {
 } from "../components/ui/Card";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
-import { ChevronDown, ChevronUp, Link as LinkIcon } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Link as LinkIcon,
+  Loader2,
+} from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "../components/ui/Alert";
+
+const BASE_URL = 'http://localhost:8000';
 
 const QAGenerator = () => {
   const [url, setUrl] = useState("");
   const [expandedQuestion, setExpandedQuestion] = useState(null);
+  const [questions, setQuestions] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Sample questions - in production, these would be generated based on the URL
-  const questions = [
-    {
-      id: 1,
-      question:
-        "What is a Transformer model and how has it revolutionized data handling?",
-      answer:
-        "A Transformer is an AI model that revolutionized data handling through its self-attention mechanism, allowing it to process sequences of data in parallel rather than sequentially. It has become the foundation for many modern language models.",
-    },
-    {
-      id: 2,
-      question: "What inspired the architecture of Transformers?",
-      answer:
-        "Transformers were inspired by the encoder-decoder architecture found in RNNs, but innovated by replacing recurrence with self-attention mechanisms. This allowed for better parallel processing and handling of long-range dependencies.",
-    },
-    {
-      id: 3,
-      question: "What are the key components of the Transformer encoder layer?",
-      answer:
-        "The key components include self-attention mechanisms, feed-forward neural networks, and layer normalization. These work together to process input sequences and capture complex relationships in the data.",
-    },
-  ];
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle URL submission logic here
-    console.log("Submitted URL:", url);
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      // Update the API endpoint to use localhost on port 8000
+      const response = await fetch(`${BASE_URL}/api/generate-qa`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate questions");
+      }
+
+      const data = await response.json();
+      setQuestions(data.questions);
+    } catch (err) {
+      setError(err.message);
+      setQuestions([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -58,40 +69,59 @@ const QAGenerator = () => {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 className="pl-9"
+                disabled={isLoading}
               />
             </div>
-            <Button type="submit">Generate</Button>
+            <Button type="submit" disabled={isLoading || !url}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                "Generate"
+              )}
+            </Button>
           </form>
         </CardContent>
       </Card>
 
-      <div className="space-y-3">
-        {questions.map((qa) => (
-          <Card
-            key={qa.id}
-            className="w-full transition-all duration-200 hover:shadow-md"
-          >
-            <div
-              onClick={() =>
-                setExpandedQuestion(expandedQuestion === qa.id ? null : qa.id)
-              }
-              className="flex items-center justify-between p-4 cursor-pointer"
+      {error && (
+        <Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {questions.length > 0 && (
+        <div className="space-y-3">
+          {questions.map((qa, index) => (
+            <Card
+              key={index}
+              className="w-full transition-all duration-200 hover:shadow-md"
             >
-              <h3 className="text-lg font-medium pr-4">{qa.question}</h3>
-              {expandedQuestion === qa.id ? (
-                <ChevronUp className="h-5 w-5 flex-shrink-0" />
-              ) : (
-                <ChevronDown className="h-5 w-5 flex-shrink-0" />
+              <div
+                onClick={() =>
+                  setExpandedQuestion(expandedQuestion === index ? null : index)
+                }
+                className="flex items-center justify-between p-4 cursor-pointer"
+              >
+                <h3 className="text-lg font-medium pr-4">{qa.question}</h3>
+                {expandedQuestion === index ? (
+                  <ChevronUp className="h-5 w-5 flex-shrink-0" />
+                ) : (
+                  <ChevronDown className="h-5 w-5 flex-shrink-0" />
+                )}
+              </div>
+              {expandedQuestion === index && (
+                <CardContent className="pt-0 pb-4">
+                  <p className="text-gray-600">{qa.answer}</p>
+                </CardContent>
               )}
-            </div>
-            {expandedQuestion === qa.id && (
-              <CardContent className="pt-0 pb-4">
-                <p className="text-gray-600">{qa.answer}</p>
-              </CardContent>
-            )}
-          </Card>
-        ))}
-      </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
