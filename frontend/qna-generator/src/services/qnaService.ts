@@ -19,7 +19,6 @@ export const generateQnA = async (url: string): Promise<QnAResponse> => {
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Access-Control-Allow-Origin': 'http://localhost:3000',
     },
     credentials: 'include',
     body: JSON.stringify({ url }),
