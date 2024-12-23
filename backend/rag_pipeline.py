@@ -97,12 +97,12 @@ def prompt_llm(final_summary):
     Make sure you don't use LaTeX in your questions and answers.
     """
     response = openai.chat.completions.create(
-    model="gpt-3.5-turbo",
-    messages=[
-        {"role": "system", "content": "You are a helpful assistant who generates FAQs from website content."},
-        {"role": "user", "content": prompt},
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant who generates FAQs from website content."},
+            {"role": "user", "content": prompt},
 
-    ]
+        ]
     )
     answer = response.choices[0].message.content
     faq_list = re.split(r"\n+", answer)
@@ -116,7 +116,7 @@ def refine_summary(initial_summary):
     Takes the initial BART summary and refines it using OpenAI to make it more concise and clear.
     """
     prompt = f"""
-    You are an expert at making technical content clear and accessible. Rewrite the following 
+    You are an expert at making technical content clear and accessible. Rewrite the following
     technical summary to be more concise and easier to understand. Focus on:
     
     1. Key concepts and main ideas
@@ -142,20 +142,20 @@ def refine_summary(initial_summary):
     refined_summary = response.choices[0].message.content.strip()
     return refined_summary
 
+
 def prompt_llm_for_related_topics(final_summary):
     prompt = f"""
     Based on the following content: {final_summary} generate exactly 2 topics
-    that are related to this topic or discussed in the article summary. 
+    that are related to this topic or discussed in the article summary.
     Provide your answer in the format '['Topic 1', 'Topic 2']'
     """
 
-
     response = openai.chat.completions.create(
-    model="gpt-3.5-turbo",
-    messages=[
-        {"role": "system", "content": "You are a helpful assistant who generates topics related to article summaries."},
-        {"role": "user", "content": prompt},
-    ]
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant who generates topics related to article summaries."},
+            {"role": "user", "content": prompt},
+        ]
     )
     topic_list_str = response.choices[0].message.content
     topic_list = ast.literal_eval(topic_list_str)

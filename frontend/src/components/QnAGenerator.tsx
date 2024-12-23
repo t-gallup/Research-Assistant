@@ -4,9 +4,9 @@ import {
   CardHeader,
   CardTitle,
   CardContent,
-} from "../components/ui/Card";
-import { Input } from "../components/ui/Input";
-import { Button } from "../components/ui/Button";
+} from "./ui/Card";
+import { Input } from "./ui/Input";
+import { Button } from "./ui/Button";
 import {
   ChevronDown,
   ChevronUp,
@@ -16,7 +16,7 @@ import {
   List,
   Newspaper
 } from "lucide-react";
-import { Alert, AlertTitle, AlertDescription } from "../components/ui/Alert";
+import { Alert, AlertTitle, AlertDescription } from "./ui/Alert";
 
 const BASE_URL = 'http://localhost:8000';
 
