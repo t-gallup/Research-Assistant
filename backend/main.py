@@ -19,6 +19,7 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
+
 @app.post("/api/generate-qna")
 async def generate_qna(url_input: URLInput):
     file_type = rp.check_file_type(url_input.url)
@@ -31,9 +32,14 @@ async def generate_qna(url_input: URLInput):
         pdf, response = rp.load_pdf(url_input.url)
         doc_string, article_title = rp.extract_from_pdf(pdf, response)
 
-    final_summary = rp.summarize_content(doc_string)
-    topic_list = rp.prompt_llm_for_related_topics(final_summary)
-    questions, answers = rp.prompt_llm(final_summary)
+    # Get initial summary using BART
+    initial_summary = rp.summarize_content(doc_string)
+    
+    # Refine the summary using OpenAI
+    refined_summary = rp.refine_summary(initial_summary)
+    
+    topic_list = rp.prompt_llm_for_related_topics(refined_summary)
+    questions, answers = rp.prompt_llm(refined_summary)
     
     # Get recommended articles
     rec_titles, rec_links = [], []
@@ -45,7 +51,7 @@ async def generate_qna(url_input: URLInput):
 
     return {
         "articleTitle": article_title,
-        "summary": final_summary,
+        "summary": refined_summary,  # Now using the refined summary
         "qnaPairs": [{"question": q, "answer": a} for q, a in zip(questions, answers)],
         "recommendedArticles": [{"title": t, "link": l} for t, l in zip(rec_titles, rec_links)]
     }

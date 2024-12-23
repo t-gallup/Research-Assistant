@@ -78,7 +78,7 @@ const QAGenerator = () => {
                 }
                 className="flex items-center justify-between p-4 cursor-pointer"
               >
-                <h3 className="text-lg font-medium pr-4">{qa.question}</h3>
+                <h3 className="text-lg font-semibold pr-4 text-gray-900">{qa.question}</h3>
                 {expandedQuestion === index ? (
                   <ChevronUp className="h-5 w-5 flex-shrink-0" />
                 ) : (
@@ -87,7 +87,7 @@ const QAGenerator = () => {
               </div>
               {expandedQuestion === index && (
                 <CardContent className="pt-0 pb-4">
-                  <p className="text-gray-600">{qa.answer}</p>
+                  <p className="text-gray-700 leading-relaxed text-base">{qa.answer}</p>
                 </CardContent>
               )}
             </Card>
@@ -102,8 +102,17 @@ const QAGenerator = () => {
       content: (
         <Card>
           <CardContent className="pt-6">
-            <h2 className="text-xl font-bold mb-4">{data.articleTitle}</h2>
-            <p className="text-gray-600 whitespace-pre-wrap">{data.summary}</p>
+            <h2 className="text-xl font-bold mb-6 text-gray-900">{data.articleTitle}</h2>
+            <div className="prose prose-lg max-w-none">
+              <p className="text-gray-700 leading-relaxed text-base">
+                {data.summary.split('\n').map((paragraph, index) => (
+                  <React.Fragment key={index}>
+                    {paragraph}
+                    {index < data.summary.split('\n').length - 1 && <br />}
+                  </React.Fragment>
+                ))}
+              </p>
+            </div>
           </CardContent>
         </Card>
       ),
@@ -115,16 +124,38 @@ const QAGenerator = () => {
       content: (
         <div className="space-y-3">
           {data.recommendedArticles.map((article, index) => (
-            <Card key={index}>
+            <Card key={index} className="hover:shadow-md transition-shadow">
               <CardContent className="p-4">
-                <a
-                  href={article.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  {article.title}
-                </a>
+                <div className="flex flex-col gap-3">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      {article.title}
+                    </h3>
+                    <div className="flex gap-3">
+                      <a
+                        href={article.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 text-sm"
+                      >
+                        View Original →
+                      </a>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setUrl(article.link);
+                          setExpandedSection("qna");
+                          handleSubmit(new Event('submit') as any);
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <Loader2 className={`h-4 w-4 ${isLoading ? 'animate-spin' : 'hidden'}`} />
+                        Analyze Article
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -181,7 +212,7 @@ const QAGenerator = () => {
                 key={section.id}
                 variant={expandedSection === section.id ? "default" : "outline"}
                 onClick={() => setExpandedSection(section.id)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 text-base font-medium"
               >
                 <section.icon className="h-4 w-4" />
                 {section.title}

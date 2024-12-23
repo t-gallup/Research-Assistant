@@ -111,6 +111,37 @@ def prompt_llm(final_summary):
     return questions, answers
 
 
+def refine_summary(initial_summary):
+    """
+    Takes the initial BART summary and refines it using OpenAI to make it more concise and clear.
+    """
+    prompt = f"""
+    You are an expert at making technical content clear and accessible. Rewrite the following 
+    technical summary to be more concise and easier to understand. Focus on:
+    
+    1. Key concepts and main ideas
+    2. Clear, simple language without jargon
+    3. Logical flow of ideas
+    4. Brevity while maintaining important details
+    
+    Summary to refine: {initial_summary}
+    
+    Format your response as a polished, well-organized paragraph that a general audience can understand.
+    Aim for around 2-3 sentences that capture the essence of the content.
+    """
+
+    response = openai.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are an expert at making complex technical content clear and concise."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.5,  # Lower temperature for more focused output
+    )
+    
+    refined_summary = response.choices[0].message.content.strip()
+    return refined_summary
+
 def prompt_llm_for_related_topics(final_summary):
     prompt = f"""
     Based on the following content: {final_summary} generate exactly 2 topics
