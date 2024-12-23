@@ -54,7 +54,7 @@ uvicorn main:app --reload --port 8000
 
 6. In a new terminal, start the React frontend:
 ```bash
-cd frontend/qna-generator
+cd frontend
 npm start
 ```
 
