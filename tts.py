@@ -93,9 +93,9 @@ class PDFAudioSummarizer:
         )
         
         # Configure voice
-        speech_config.speech_synthesis_voice_name = "en-US-JennyMultilingualNeural"
+        speech_config.speech_synthesis_voice_name = "en-US-BrianMultilingualNeural"
         
-        audio_config = speechsdk.AudioOutputConfig(filename=output_file)
+        audio_config = speechsdk.audio.AudioConfig(filename=output_file)
         synthesizer = speechsdk.SpeechSynthesizer(
             speech_config=speech_config,
             audio_config=audio_config
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     summarizer = PDFAudioSummarizer(
         openai_api_key=os.getenv('OPENAI_API_KEY'),
         azure_key=os.getenv('AZURE_SPEECH_KEY'),
-        azure_region="uswest2"
+        azure_region="westus2"
     )
 
     # Process a PDF
