@@ -1,18 +1,15 @@
 version: "3.8"
 
 services:
-  app:
+  backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
-    image: research-container:latest
     ports:
       - "80:80"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - AZURE_SPEECH_KEY=${AZURE_SPEECH_KEY}
-    volumes:
-      - .:/app
     deploy:
       resources:
         reservations:
@@ -20,3 +17,12 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend

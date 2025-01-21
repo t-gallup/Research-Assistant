@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy all application files
+# Copy backend files
 COPY requirements.txt .
 COPY main.py .
 COPY rag_pipeline.py .
@@ -19,4 +19,4 @@ COPY tts.py .
 RUN pip3 install -r requirements.txt
 
 # Run the FastAPI app
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"] 
