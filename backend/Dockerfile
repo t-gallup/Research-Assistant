@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.8.0-runtime-ubuntu24.04
+FROM nvidia/cuda:11.8.0-runtime-ubuntu22.04
 
 # Install Python, pip and FFmpeg
 RUN apt-get update && apt-get install -y \
