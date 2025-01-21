@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.8.0-runtime-ubuntu22.04
+FROM nvidia/cuda:11.8.0-runtime-ubuntu24.04
 
 # Install Python, pip and FFmpeg
 RUN apt-get update && apt-get install -y \
@@ -13,6 +13,7 @@ WORKDIR /app
 COPY requirements.txt .
 COPY main.py .
 COPY rag_pipeline.py .
+COPY tts.py .
 
 # Install requirements
 RUN pip3 install -r requirements.txt

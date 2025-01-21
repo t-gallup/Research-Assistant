@@ -1,16 +1,15 @@
 import os
 import io
-import math
 import requests
 import azure.cognitiveservices.speech as speechsdk
 from PyPDF2 import PdfReader
 from openai import OpenAI
 import openai
 from tqdm import tqdm
-from pydub import AudioSegment
 from dotenv import load_dotenv
 
 load_dotenv()
+
 
 class PDFAudioSummarizer:
     def __init__(self, openai_api_key, azure_key, azure_region):
@@ -18,7 +17,7 @@ class PDFAudioSummarizer:
         self.azure_key = azure_key
         self.azure_region = azure_region
         openai.api_key = openai_api_key
-        
+
     def download_pdf(self, url):
         """Download PDF from URL"""
         response = requests.get(url)
@@ -29,21 +28,21 @@ class PDFAudioSummarizer:
         reader = PdfReader(pdf_file)
         chunks = []
         current_chunk = ""
-        
+
         for page in reader.pages:
             text = page.extract_text()
             words = text.split()
-            
+
             for word in words:
                 if len(current_chunk) + len(word) + 1 <= chunk_size:
                     current_chunk += word + " "
                 else:
                     chunks.append(current_chunk.strip())
                     current_chunk = word + " "
-                    
+
         if current_chunk:
             chunks.append(current_chunk.strip())
-            
+
         return chunks
 
     def summarize_chunk(self, chunk):
@@ -91,18 +90,18 @@ class PDFAudioSummarizer:
             subscription=self.azure_key,
             region=self.azure_region
         )
-        
+
         # Configure voice
         speech_config.speech_synthesis_voice_name = "en-US-BrianMultilingualNeural"
-        
+
         audio_config = speechsdk.audio.AudioConfig(filename=output_file)
         synthesizer = speechsdk.SpeechSynthesizer(
             speech_config=speech_config,
             audio_config=audio_config
         )
-        
+
         result = synthesizer.speak_text_async(text).get()
-        
+
         if result.reason != speechsdk.ResultReason.SynthesizingAudioCompleted:
             raise Exception(f"Speech synthesis failed: {result.reason}")
 
@@ -111,26 +110,26 @@ class PDFAudioSummarizer:
         try:
             print("Downloading PDF...")
             pdf_file = self.download_pdf(url)
-            
+
             print("Extracting text in chunks...")
             chunks = self.extract_text_with_chunks(pdf_file)
-            
+
             print(f"Summarizing {len(chunks)} chunks...")
             chunk_summaries = []
             for i, chunk in enumerate(tqdm(chunks)):
                 summary = self.summarize_chunk(chunk)
                 if summary:
                     chunk_summaries.append(summary)
-            
+
             print("Generating final summary...")
             final_summary = self.generate_final_summary(chunk_summaries)
-            
+
             print("Converting to speech...")
             self.text_to_speech_azure(final_summary, output_file)
-            
+
             print(f"Summary audio saved to {output_file}")
             return True
-            
+
         except Exception as e:
             print(f"Error processing PDF: {str(e)}")
             return False
