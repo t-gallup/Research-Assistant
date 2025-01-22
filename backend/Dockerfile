@@ -9,6 +9,9 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
+# Create audio directory
+RUN mkdir audio
+
 # Copy backend files
 COPY requirements.txt .
 COPY main.py .

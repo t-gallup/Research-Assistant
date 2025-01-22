@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import rag_pipeline as rp
 import logging
+import os
+import uuid
+from fastapi.staticfiles import StaticFiles
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +26,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/audio", StaticFiles(directory="audio"), name="audio")
+
+os.makedirs("audio", exist_ok=True)
 
 
 @app.get("/health")
@@ -77,4 +84,26 @@ async def generate_qna(url_input: URLInput):
         }
     except Exception as e:
         logger.error(f"Error processing request: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/generate-audio")
+async def generate_audio(url_input: URLInput):
+    try:
+        summarizer = PDFAudioSummarizer(
+            openai_api_key=os.getenv('OPENAI_API_KEY'),
+            azure_key=os.getenv('AZURE_SPEECH_KEY'),
+            azure_region="westus2"
+        )
+        
+        output_file = f"audio_{uuid.uuid4()}.mp3"
+        success = summarizer.process_pdf(url_input.url, output_file)
+        
+        if success:
+            return {"status": "success", "audio_file": output_file}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to generate audio")
+            
+    except Exception as e:
+        logger.error(f"Error generating audio: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
