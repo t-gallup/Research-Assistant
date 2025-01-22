@@ -1,24 +1,20 @@
 import React, { useState } from "react";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "./ui/Card";
+import { Card, CardHeader, CardTitle, CardContent } from "./ui/Card";
 import { Input } from "./ui/Input";
 import { Button } from "./ui/Button";
 import {
   ChevronDown,
   ChevronUp,
   Link as LinkIcon,
-  Loader2,
+  Play,
   BookOpen,
   List,
-  Newspaper
+  Newspaper,
+  Loader2,
 } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "./ui/Alert";
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = "http://localhost:8000";
 
 const QAGenerator = () => {
   const [url, setUrl] = useState("");
@@ -28,10 +24,11 @@ const QAGenerator = () => {
     articleTitle: "",
     summary: "",
     qnaPairs: [],
-    recommendedArticles: []
+    recommendedArticles: [],
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [audioFile, setAudioFile] = useState<string | null>(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,7 +36,8 @@ const QAGenerator = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${BASE_URL}/api/generate-qna`, {
+      // Generate Q&A
+      const qnaResponse = await fetch(`${BASE_URL}/api/generate-qna`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -47,14 +45,32 @@ const QAGenerator = () => {
         body: JSON.stringify({ url }),
       });
 
-      if (!response.ok) {
+      if (!qnaResponse.ok) {
         throw new Error("Failed to generate content");
       }
 
-      const responseData = await response.json();
+      const responseData = await qnaResponse.json();
       setData(responseData);
+
+      const audioResponse = await fetch(`${BASE_URL}/api/generate-audio`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url }),
+      });
+
+      if (!audioResponse.ok) {
+        throw new Error("Failed to generate audio");
+      }
+
+      const audioData = await audioResponse.json();
+      if (audioData.audio_file) {
+        setAudioFile(audioData.audio_file);
+      }
     } catch (err) {
       setError(err.message);
+      console.error("Error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -78,7 +94,9 @@ const QAGenerator = () => {
                 }
                 className="flex items-center justify-between p-4 cursor-pointer"
               >
-                <h3 className="text-lg font-semibold pr-4 text-gray-900">{qa.question}</h3>
+                <h3 className="text-lg font-semibold pr-4 text-gray-900">
+                  {qa.question}
+                </h3>
                 {expandedQuestion === index ? (
                   <ChevronUp className="h-5 w-5 flex-shrink-0" />
                 ) : (
@@ -87,7 +105,9 @@ const QAGenerator = () => {
               </div>
               {expandedQuestion === index && (
                 <CardContent className="pt-0 pb-4">
-                  <p className="text-gray-700 leading-relaxed text-base">{qa.answer}</p>
+                  <p className="text-gray-700 leading-relaxed text-base">
+                    {qa.answer}
+                  </p>
                 </CardContent>
               )}
             </Card>
@@ -102,17 +122,46 @@ const QAGenerator = () => {
       content: (
         <Card>
           <CardContent className="pt-6">
-            <h2 className="text-xl font-bold mb-6 text-gray-900">{data.articleTitle}</h2>
+            <h2 className="text-xl font-bold mb-6 text-gray-900">
+              {data.articleTitle}
+            </h2>
             <div className="prose prose-lg max-w-none">
               <p className="text-gray-700 leading-relaxed text-base">
-                {data.summary.split('\n').map((paragraph, index) => (
+                {data.summary.split("\n").map((paragraph, index) => (
                   <React.Fragment key={index}>
                     {paragraph}
-                    {index < data.summary.split('\n').length - 1 && <br />}
+                    {index < data.summary.split("\n").length - 1 && <br />}
                   </React.Fragment>
                 ))}
               </p>
             </div>
+          </CardContent>
+        </Card>
+      ),
+    },
+    {
+      id: "audio",
+      title: "Audio",
+      icon: Play,
+      content: (
+        <Card>
+          <CardContent className="p-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Audio Playback
+            </h3>
+            {audioFile ? (
+              <audio controls>
+                <source
+                  src={`${BASE_URL}/audio/${audioFile}`}
+                  type="audio/mpeg"
+                />
+                Your browser does not support the audio element.
+              </audio>
+            ) : (
+              <p>
+                No audio available. Please analyze an article to generate audio.
+              </p>
+            )}
           </CardContent>
         </Card>
       ),
@@ -146,11 +195,15 @@ const QAGenerator = () => {
                         onClick={() => {
                           setUrl(article.link);
                           setExpandedSection("qna");
-                          handleSubmit(new Event('submit') as any);
+                          handleSubmit(new Event("submit") as any);
                         }}
                         className="flex items-center gap-2"
                       >
-                        <Loader2 className={`h-4 w-4 ${isLoading ? 'animate-spin' : 'hidden'}`} />
+                        <Loader2
+                          className={`h-4 w-4 ${
+                            isLoading ? "animate-spin" : "hidden"
+                          }`}
+                        />
                         Analyze Article
                       </Button>
                     </div>
@@ -204,7 +257,9 @@ const QAGenerator = () => {
         </Alert>
       )}
 
-      {(data.qnaPairs.length > 0 || data.summary || data.recommendedArticles.length > 0) && (
+      {(data.qnaPairs.length > 0 ||
+        data.summary ||
+        data.recommendedArticles.length > 0) && (
         <div className="space-y-4">
           <div className="flex gap-2 border-b pb-2">
             {sections.map((section) => (

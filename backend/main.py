@@ -6,6 +6,7 @@ import logging
 import os
 import uuid
 from fastapi.staticfiles import StaticFiles
+import tts as t
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -90,17 +91,17 @@ async def generate_qna(url_input: URLInput):
 @app.post("/api/generate-audio")
 async def generate_audio(url_input: URLInput):
     try:
-        summarizer = PDFAudioSummarizer(
+        summarizer = t.PDFAudioSummarizer(
             openai_api_key=os.getenv('OPENAI_API_KEY'),
             azure_key=os.getenv('AZURE_SPEECH_KEY'),
             azure_region="westus2"
         )
         
-        output_file = f"audio_{uuid.uuid4()}.mp3"
+        output_file = f"audio/audio_{uuid.uuid4()}.mp3"
         success = summarizer.process_pdf(url_input.url, output_file)
         
         if success:
-            return {"status": "success", "audio_file": output_file}
+            return {"status": "success", "audio_file": os.path.basename(output_file)}
         else:
             raise HTTPException(status_code=500, detail="Failed to generate audio")
             
