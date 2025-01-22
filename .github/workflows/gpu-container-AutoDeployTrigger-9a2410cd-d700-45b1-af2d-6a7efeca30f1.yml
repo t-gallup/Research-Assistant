@@ -38,6 +38,7 @@ jobs:
             --assignee ${{ secrets.GPUCONTAINER_AZURE_CLIENT_ID }} \
             --role "Contributor" \
             --resource-group summarizer-rg
+            --scope "/subscriptions/${{ secrets.GPUCONTAINER_AZURE_SUBSCRIPTION_ID }}/resourceGroups/summarizer-rg/providers/Microsoft.App/containerApps/gpu-container"
 
       - name: Build and push container image to registry
         uses: azure/container-apps-deploy-action@v2
