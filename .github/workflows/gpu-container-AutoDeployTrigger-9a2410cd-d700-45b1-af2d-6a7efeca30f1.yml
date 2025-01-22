@@ -36,7 +36,7 @@ jobs:
         run: |
           az role assignment create \
           --assignee ${{ secrets.GPUCONTAINER_AZURE_CLIENT_ID }} \
-          --role "Azure Container Apps Secrets Reader" \
+          --role "Contributor" \
           --scope "/subscriptions/${{ secrets.GPUCONTAINER_AZURE_SUBSCRIPTION_ID }}/resourceGroups/summarizer-rg/providers/Microsoft.App/containerApps/gpu-container"
 
       - name: Build and push container image to registry
