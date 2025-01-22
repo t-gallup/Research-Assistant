@@ -32,12 +32,12 @@ jobs:
           subscription-id: ${{ secrets.GPUCONTAINER_AZURE_SUBSCRIPTION_ID }}
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Assign Container App Permissions
+      - name: Assign Resource Group Level Permissions
         run: |
           az role assignment create \
-          --assignee ${{ secrets.GPUCONTAINER_AZURE_CLIENT_ID }} \
-          --role "Contributor" \
-          --scope "/subscriptions/${{ secrets.GPUCONTAINER_AZURE_SUBSCRIPTION_ID }}/resourceGroups/summarizer-rg/providers/Microsoft.App/containerApps/gpu-container"
+            --assignee ${{ secrets.GPUCONTAINER_AZURE_CLIENT_ID }} \
+            --role "Contributor" \
+            --resource-group summarizer-rg
 
       - name: Build and push container image to registry
         uses: azure/container-apps-deploy-action@v2
