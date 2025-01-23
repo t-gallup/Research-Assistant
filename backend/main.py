@@ -42,10 +42,10 @@ async def health_check():
 async def generate_qna(url_input: URLInput):
     try:
         logger.info(f"Processing URL: {url_input.url}")
-        
+
         file_type = rp.check_file_type(url_input.url)
         doc_string, article_title = "", ""
-        
+
         if file_type == "html":
             html = await rp.load_html(url_input.url)
             doc_string, article_title = rp.extract_from_html(html)
@@ -71,7 +71,8 @@ async def generate_qna(url_input: URLInput):
         rec_titles, rec_links = [], []
         for topic in topic_list[:2]:
             results = rp.search_google(topic)
-            new_rec_titles, new_rec_links = rp.get_top_5_articles(results, url_input.url)
+            new_rec_titles, new_rec_links = \
+                rp.get_top_5_articles(results, url_input.url)
             rec_titles.extend(new_rec_titles)
             rec_links.extend(new_rec_links)
 
@@ -80,8 +81,10 @@ async def generate_qna(url_input: URLInput):
         return {
             "articleTitle": article_title,
             "summary": refined_summary,
-            "qnaPairs": [{"question": q, "answer": a} for q, a in zip(questions, answers)],
-            "recommendedArticles": [{"title": t, "link": l} for t, l in zip(rec_titles, rec_links)]
+            "qnaPairs": [{"question": q, "answer": a} for q,
+                         a in zip(questions, answers)],
+            "recommendedArticles": [{"title": t, "link": l} for t,
+                                    l in zip(rec_titles, rec_links)]
         }
     except Exception as e:
         logger.error(f"Error processing request: {str(e)}")
@@ -96,15 +99,17 @@ async def generate_audio(url_input: URLInput):
             azure_key=os.getenv('AZURE_SPEECH_KEY'),
             azure_region="westus2"
         )
-        
+
         output_file = f"audio/audio_{uuid.uuid4()}.mp3"
         success = summarizer.process_pdf(url_input.url, output_file)
-        
+
         if success:
-            return {"status": "success", "audio_file": os.path.basename(output_file)}
+            return {"status": "success", "audio_file":
+                    os.path.basename(output_file)}
         else:
-            raise HTTPException(status_code=500, detail="Failed to generate audio")
-            
+            raise HTTPException(status_code=500,
+                                detail="Failed to generate audio")
+
     except Exception as e:
         logger.error(f"Error generating audio: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
