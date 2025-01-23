@@ -1,6 +1,5 @@
 name: Trigger auto deployment for gpu-container
 
-# When this action will be executed
 on:
   # Automatically trigger it when detected changes in repo
   push:
@@ -10,15 +9,14 @@ on:
       - "frontend/**"
       - ".github/workflows/gpu-container-AutoDeployTrigger-9a2410cd-d700-45b1-af2d-6a7efeca30f1.yml"
 
-  # Allow manual trigger
   workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write #This is required for requesting the OIDC JWT Token
-      contents: read #Required when GH token is used to authenticate with private repo
+      id-token: write
+      contents: read
 
     steps:
       - name: Checkout to the branch
