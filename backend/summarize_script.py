@@ -12,7 +12,8 @@ def summarize(text):
     )
 
     max_chunk_size = 1024
-    chunks = [text[i:i+max_chunk_size] for i in range(0, len(text), max_chunk_size)]
+    chunks = [text[i:i+max_chunk_size] for i in range(0, len(text),
+                                                      max_chunk_size)]
 
     summaries = []
     for chunk in chunks:
