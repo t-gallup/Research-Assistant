@@ -1,5 +1,3 @@
-# Add at the top of the file
-import torch
 from langchain_community.document_loaders import AsyncHtmlLoader
 from langchain_community.document_transformers import BeautifulSoupTransformer
 from langchain_community.document_loaders import PyPDFLoader
@@ -10,9 +8,67 @@ from io import BytesIO
 import openai
 import re
 import os
-import requests
 import ast
+import requests
 import logging
+from google.cloud import aiplatform
+from google.cloud import storage
+from dotenv import load_dotenv
+import json
+
+load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+class GCPSummarizer:
+    def __init__(self):
+        self.project_id = os.getenv('GCP_PROJECT_ID')
+        self.region = os.getenv('GCP_REGION', 'us-west1')
+        self.bucket_name = "summarizationbucket"
+        
+        aiplatform.init(
+            project=self.project_id,
+            location=self.region,
+            staging_bucket=self.bucket_name
+        )
+        
+        self.storage_client = storage.Client()
+        self.bucket = self.storage_client.bucket(self.bucket_name)
+
+    def submit_job(self, text: str) -> str:
+        try:
+            container_spec = {
+                "image_uri": f"gcr.io/{self.project_id}/pytorch-gpu",
+                "command": ["python", "summarize_script.py"],
+                "args": [f"--text={text}"]
+            }
+
+            worker_pool_specs = [{
+                "machine_spec": {
+                    "machine_type": "n1-standard-8",
+                    "accelerator_type": "NVIDIA_TESLA_T4",
+                    "accelerator_count": 1
+                },
+                "replica_count": 1,
+                "container_spec": container_spec
+            }]
+
+            job = aiplatform.CustomJob(
+                display_name="summarization-job",
+                worker_pool_specs=worker_pool_specs
+            )
+
+            job.run(sync=True)
+            
+            blob = self.bucket.blob('summary.json')
+            content = blob.download_as_string()
+            result = json.loads(content)
+            
+            return result["summary"]
+            
+        except Exception as e:
+            logger.error(f"Error in GCP job submission: {str(e)}")
+            raise
 
 
 def check_file_type(url):
@@ -68,24 +124,27 @@ def extract_from_pdf(pdf, response):
     return doc_string, article_title
 
 
-# def summarize_content(doc_string):
-#     physical_devices = tf.config.list_physical_devices('GPU')
-#     if physical_devices:
-#         print("GPU detected, using GPU")
-#         device = 0
-#     else:
-#         print("No GPU detected, using CPU")
-#         device = -1
-#     summarizer = pipeline("summarization", model="facebook/bart-large-cnn", device=device)
-#     max_chunk_size = 1000
-#     inputs = summarizer.tokenizer(doc_string, return_tensors="tf", truncation=False)
-#     tokens = inputs.input_ids[0]
-#     chunks = [tokens[i:i+max_chunk_size] for i in range(0, len(tokens), max_chunk_size)]
-#     batch_chunk_texts = [summarizer.tokenizer.decode(chunk, skip_special_tokens=True) for chunk in chunks]
-#     summaries = summarizer(batch_chunk_texts, max_length=100, truncation=True) 
-#     summary_texts = [summary['summary_text'] for summary in summaries]
-#     final_summary = " ".join(summary_texts)
-#     return final_summary
+def summarize_content(text: str) -> str:
+    """Summarize content using Google Cloud GPU"""
+    try:
+        # Initialize GCP summarizer
+        summarizer = GCPSummarizer()
+        
+        # Submit job and get summary
+        summary = summarizer.submit_job(text)
+        return summary
+
+    except Exception as e:
+        logger.error(f"Error in GCP summarization: {str(e)}")
+        # Fallback to local CPU if GCP fails
+        logger.info("Falling back to local CPU summarization")
+        summarizer = pipeline(
+            "summarization",
+            model="facebook/bart-large-cnn",
+            device=-1
+        )
+        summary = summarizer(text, max_length=130, min_length=30, do_sample=False)
+        return summary[0]['summary_text']
 
 
 def prompt_llm(final_summary):
@@ -103,7 +162,6 @@ def prompt_llm(final_summary):
         messages=[
             {"role": "system", "content": "You are a helpful assistant who generates FAQs from website content."},
             {"role": "user", "content": prompt},
-
         ]
     )
     answer = response.choices[0].message.content
@@ -114,9 +172,6 @@ def prompt_llm(final_summary):
 
 
 def refine_summary(initial_summary):
-    """
-    Takes the initial BART summary and refines it using OpenAI to make it more concise and clear.
-    """
     prompt = f"""
     You are an expert at making technical content clear and accessible. Rewrite the following
     technical summary to be more concise and easier to understand. Focus on:
@@ -138,7 +193,7 @@ def refine_summary(initial_summary):
             {"role": "system", "content": "You are an expert at making complex technical content clear and concise."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.5,  # Lower temperature for more focused output
+        temperature=0.5,
     )
     
     refined_summary = response.choices[0].message.content.strip()
@@ -165,12 +220,16 @@ def prompt_llm_for_related_topics(final_summary):
 
 
 def search_google(query):
-    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-    SEARCH_ENGINE_ID = os.getenv("SEARCH_ENGINE_ID")
+    google_api_key = os.getenv("GOOGLE_API_KEY")
+    search_engine_id = os.getenv("SEARCH_ENGINE_ID")
+    
+    if not google_api_key or not search_engine_id:
+        raise ValueError("Missing required Google API credentials")
+        
     url = "https://www.googleapis.com/customsearch/v1"
     params = {
-        "key": GOOGLE_API_KEY,
-        "cx": SEARCH_ENGINE_ID,
+        "key": google_api_key,
+        "cx": search_engine_id,
         "q": query,
     }
     response = requests.get(url, params=params)
@@ -186,35 +245,3 @@ def get_top_5_articles(results, past_url):
             titles.append(results['items'][i]['title'])
             links.append(results['items'][i]['link'])
     return titles, links
-
-
-# Update the summarize_content function to better handle GPU
-def summarize_content(doc_string):
-    # Check for GPU availability
-    if torch.cuda.is_available():
-        logging.info("GPU detected, using PyTorch GPU")
-        device = 0
-    else:
-        logging.info("No GPU detected, using CPU")
-        device = -1
-        
-    summarizer = pipeline(
-        "summarization",
-        model="facebook/bart-large-cnn",
-        device=device
-    )
-    
-
-    # Rest of the function remains the same
-    max_chunk_size = 1000
-    inputs = summarizer.tokenizer(doc_string, return_tensors="pt",
-                                  truncation=False)
-    tokens = inputs.input_ids[0]
-    chunks = [tokens[i:i+max_chunk_size] for i in range(0, len(tokens),
-                                                        max_chunk_size)]
-    batch_chunk_texts = [summarizer.tokenizer.decode(chunk, 
-                                    skip_special_tokens=True) for chunk in chunks]
-    summaries = summarizer(batch_chunk_texts, max_length=100, truncation=True)
-    summary_texts = [summary['summary_text'] for summary in summaries]
-    final_summary = " ".join(summary_texts)
-    return final_summary

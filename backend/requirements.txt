@@ -12,3 +12,5 @@ pydantic==2.6.1
 python-multipart==0.0.9
 requests==2.31.0
 azure-cognitiveservices-speech==1.42.0
+google-cloud-aiplatform==1.78.0
+google-cloud-storage==2.19.0

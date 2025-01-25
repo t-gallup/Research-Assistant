@@ -221,7 +221,7 @@ const QAGenerator = () => {
     <div className="w-full max-w-4xl mx-auto p-4 space-y-6">
       <Card className="w-full">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">Content Explorer</CardTitle>
+          <CardTitle className="text-2xl font-bold">Research Assistant</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="flex gap-2">
