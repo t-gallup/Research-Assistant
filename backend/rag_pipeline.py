@@ -32,7 +32,7 @@ class GCPSummarizer:
             location=self.region,
             staging_bucket=self.bucket_name
         )
-        
+
         self.storage_client = storage.Client()
         self.bucket = self.storage_client.bucket(self.bucket_name)
 
