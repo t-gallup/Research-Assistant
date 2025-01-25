@@ -1,10 +1,10 @@
 import React from 'react';
-import QnAGenerator from './components/QnAGenerator';
+import ResearchAssistant from './components/ResearchAssistant';
 
 function App() {
   return (
     <div className="App">
-      <QnAGenerator />
+      <ResearchAssistant />
     </div>
   );
 }

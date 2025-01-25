@@ -1,7 +1,0 @@
-name: summarization-endpoint
-compute: azureml:gpu-cluster
-deployment:
-  model: azureml:bart-large-cnn:1
-  environment: azureml:summarization-env:1
-  compute_type: gpu
-  instance_type: Standard_NC6s_v3 
