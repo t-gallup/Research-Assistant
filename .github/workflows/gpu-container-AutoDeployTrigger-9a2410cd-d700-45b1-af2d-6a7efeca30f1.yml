@@ -30,27 +30,34 @@ jobs:
           token_format: "access_token"
           create_credentials_file: true
 
+      - name: Get Secrets
+        id: secrets
+        run: |
+          echo "FIREBASE_TOKEN=$(gcloud secrets versions access latest --secret=firebase-token)" >> $GITHUB_ENV
+          echo "GCP_REGION=$(gcloud secrets versions access latest --secret=gcp-region)" >> $GITHUB_ENV
+          echo "GCP_PROJECT_ID=$(gcloud secrets versions access latest --secret=gcp-project-id)" >> $GITHUB_ENV
+
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
           install_components: "docker-credential-gcr"
 
       - name: Configure Docker for Artifact Registry
         run: |
-          gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev
+          gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
 
       - name: Build and Push Backend Container
         run: |
-          docker build -t ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/summarizer/backend:${{ github.sha }} ./backend
-          docker push ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/summarizer/backend:${{ github.sha }}
+          docker build -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/summarizer/backend:${{ github.sha }} ./backend
+          docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/summarizer/backend:${{ github.sha }}
 
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v1
         with:
           service: summarizer-backend
-          region: ${{ secrets.GCP_REGION }}
-          image: ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/summarizer/backend:${{ github.sha }}
+          region: ${{ env.GCP_REGION }}
+          image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/summarizer/backend:${{ github.sha }}
           flags: --port=8000 --cpu=2 --memory=4Gi --allow-unauthenticated
 
       - name: Setup Node.js
@@ -70,4 +77,4 @@ jobs:
       - name: Deploy to Firebase
         working-directory: ./frontend
         run: |
-          firebase deploy --only hosting --token "${{ secrets.FIREBASE_TOKEN }}"
+          firebase deploy --only hosting --token "${{ env.FIREBASE_TOKEN }}"
