@@ -60,7 +60,7 @@ class GCPSummarizer:
             )
 
             job.run(sync=True)
-            
+
             blob = self.bucket.blob('summary.json')
             content = blob.download_as_string()
             result = json.loads(content)
