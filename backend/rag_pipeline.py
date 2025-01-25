@@ -20,6 +20,7 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+
 class GCPSummarizer:
     def __init__(self):
         self.project_id = os.getenv('GCP_PROJECT_ID')
