@@ -26,7 +26,7 @@ class GCPSummarizer:
         self.project_id = os.getenv('GCP_PROJECT_ID')
         self.region = os.getenv('GCP_REGION', 'us-west1')
         self.bucket_name = "summarizationbucket"
-        
+
         aiplatform.init(
             project=self.project_id,
             location=self.region,
