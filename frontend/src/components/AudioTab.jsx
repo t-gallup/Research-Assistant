@@ -10,7 +10,7 @@ const AudioTab = () => {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:80/api/generate-audio", {
+      const response = await fetch("http://localhost:8000/api/generate-audio", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
