@@ -22,4 +22,5 @@ COPY tts.py .
 RUN pip3 install -r requirements.txt
 
 # Run the FastAPI app
+EXPOSE 8000
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"] 
