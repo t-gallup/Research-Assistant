@@ -1,0 +1,79 @@
+name: Deploy to Google Cloud
+
+on:
+  push:
+    branches: [azure-testing]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/gpu-container-AutoDeployTrigger-9a2410cd-d700-45b1-af2d-6a7efeca30f1.yml"
+
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: "read"
+      id-token: "write"
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Google Auth
+        id: auth
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+          token_format: "access_token"
+          create_credentials_file: true
+
+      # - name: Get Secrets
+      #   id: secrets
+      #   run: |
+      #     echo "FIREBASE_TOKEN=$(gcloud secrets versions access latest --secret=firebase-token)" >> $GITHUB_ENV
+      #     echo "GCP_REGION=$(gcloud secrets versions access latest --secret=gcp-region)" >> $GITHUB_ENV
+      #     echo "GCP_PROJECT_ID=$(gcloud secrets versions access latest --secret=gcp-project-id)" >> $GITHUB_ENV
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          install_components: "docker-credential-gcr"
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev
+
+      - name: Build and Push Backend Container
+        run: |
+          docker build -t ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/summarizer/backend:${{ github.sha }} ./backend
+          docker push ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/summarizer/backend:${{ github.sha }}
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v1
+        with:
+          service: summarizer-backend
+          region: ${{ secrets.GCP_REGION }}
+          image: ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/summarizer/backend:${{ github.sha }}
+          flags: --port=8000 --cpu=2 --memory=4Gi --allow-unauthenticated
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Build Frontend
+        working-directory: ./frontend
+        run: |
+          npm install
+          npm run build
+
+      - name: Deploy to Firebase
+        working-directory: ./frontend
+        run: |
+          firebase deploy --only hosting --token "${{ secrets.FIREBASE_TOKEN }}"
