@@ -4,8 +4,8 @@ import ResearchAssistant from './components/ResearchAssistant';
 import { initializeApp } from 'firebase/app';
 import { firebaseConfig } from './firebase/config';
 import { AuthProvider } from './contexts/AuthContext';
-import AuthPage from './components/auth/AuthPage';
-import ProtectedRoute from './components/auth/ProtectedRoute';
+import AuthPage from './components/Auth/AuthPage';
+import ProtectedRoute from './components/Auth/ProtectedRoute';
 
 initializeApp(firebaseConfig);
 
