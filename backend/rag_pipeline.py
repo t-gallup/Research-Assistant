@@ -117,19 +117,31 @@ def load_pdf(url):
 
 def extract_from_pdf(pdf, response):
     doc_string = ""
-    for doc in pdf:
+    for i, doc in enumerate(pdf):
+        logger.debug(f"Processing page {i + 1}")
         doc_string += doc.page_content
 
+    logger.debug(f"Extracted text length: {len(doc_string)}")
     pdf_content = BytesIO(response.content)
     reader = PdfReader(pdf_content)
     metadata = reader.metadata
-    article_title = metadata.title if metadata.title else ""
+    article_title = metadata.title if metadata and metadata.title else ""
+    if not doc_string.strip():
+        raise ValueError("No content extracted from PDF")
+    
     return doc_string, article_title
 
 
 def summarize_content(text: str) -> str:
     """Summarize content using Google Cloud GPU"""
     try:
+        # Add content validation
+        if not text or not text.strip():
+            raise ValueError("Empty or invalid input text")
+            
+        logger.debug(f"Input text length: {len(text)}")
+        logger.debug(f"First 500 characters: {text[:500]}")
+        
         # Initialize GCP summarizer
         summarizer = GCPSummarizer()
         
@@ -139,15 +151,51 @@ def summarize_content(text: str) -> str:
 
     except Exception as e:
         logger.error(f"Error in GCP summarization: {str(e)}")
-        # Fallback to local CPU if GCP fails
         logger.info("Falling back to local CPU summarization")
-        summarizer = pipeline(
-            "summarization",
-            model="facebook/bart-large-cnn",
-            device=-1
-        )
-        summary = summarizer(text, max_length=130, min_length=30, do_sample=False)
-        return summary[0]['summary_text']
+        try:
+            summarizer = pipeline(
+                "summarization",
+                model="facebook/bart-large-cnn",
+                device=-1
+            )
+            
+            # Split text into smaller chunks with overlap
+            max_length = 1024
+            stride = 512
+            chunks = []
+            
+            for i in range(0, len(text), stride):
+                chunk = text[i:i + max_length]
+                if len(chunk.strip()) > 100:  # Only keep chunks with substantial content
+                    chunks.append(chunk)
+                    
+            logger.debug(f"Created {len(chunks)} chunks for processing")
+            
+            summaries = []
+            for i, chunk in enumerate(chunks):
+                logger.debug(f"Processing chunk {i+1}/{len(chunks)}")
+                try:
+                    chunk_summary = summarizer(chunk, 
+                                            max_length=130, 
+                                            min_length=30, 
+                                            do_sample=False,
+                                            truncation=True)
+                    summaries.append(chunk_summary[0]['summary_text'])
+                except Exception as chunk_error:
+                    logger.error(f"Error processing chunk {i+1}: {str(chunk_error)}")
+                    continue
+                    
+            if not summaries:
+                raise ValueError("No successful summaries generated")
+                
+            final_summary = " ".join(summaries)
+            logger.debug(f"Generated summary length: {len(final_summary)}")
+            
+            return final_summary
+
+        except Exception as inner_e:
+            logger.exception("Local summarization failed:")
+            raise RuntimeError(f"Summarization failed: {str(inner_e)}")
 
 
 def prompt_llm(final_summary):

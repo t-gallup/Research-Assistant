@@ -240,7 +240,7 @@ const QAGenerator = () => {
                   disabled={isLoading}
                 />
               </div>
-              <Button type="submit" disabled={isLoading || !url}>
+              <Button variant="outline" type="submit" disabled={isLoading || !url}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
