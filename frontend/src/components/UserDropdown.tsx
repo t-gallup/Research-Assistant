@@ -1,23 +1,27 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sun, Moon, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 
 const UserDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isDark, setIsDark] = useState(false);
   const dropdownRef = useRef(null);
   const auth = getAuth();
   const user = auth.currentUser;
 
   // Function to get proper Google profile picture
   const getGooglePhotoUrl = () => {
-    if (!user?.providerData?.[0]?.photoURL) return null;
+    if (!user) return null;
     
-    const photoUrl = user.providerData[0].photoURL;
+    // Check if user has a photoURL directly
+    const photoUrl = user.photoURL || user.providerData?.[0]?.photoURL;
+    if (!photoUrl) return null;
+
+    // Handle Google photos specifically
     if (photoUrl.includes('googleusercontent.com')) {
-      // Remove any existing size parameters and force high-quality image
-      return photoUrl.split('=')[0] + '=s96-c';
+      const baseUrl = photoUrl.split('=')[0];
+      return `${baseUrl}=s96-c`;
     }
+    
     return photoUrl;
   };
 
@@ -88,26 +92,6 @@ const UserDropdown = () => {
             <div className="px-4 py-2 flex items-center justify-between">
               <div className="text-gray-300 text-sm">Your profile</div>
             </div>
-          </div>
-
-          <div className="px-4 py-2 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              {isDark ? (
-                <Moon className="w-4 h-4 text-gray-400" />
-              ) : (
-                <Sun className="w-4 h-4 text-gray-400" />
-              )}
-            </div>
-            <button
-              onClick={() => setIsDark(!isDark)}
-              className="w-10 h-5 bg-gray-700 rounded-full relative"
-            >
-              <div
-                className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all ${
-                  isDark ? 'left-5' : 'left-1'
-                }`}
-              />
-            </button>
           </div>
 
           <div className="border-t border-gray-700">
