@@ -7,15 +7,18 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        'blue-violet': '#8A2BE2',
+        'medium-purple': '#9370DB',
+        'dark-blue': '#1E1E2E',
+        'muted-blue': '#4B4E6D',
+        'cyan': '#00FFFF',
+        'sky-blue': '#5DE2FF',
+        'deep-black': '#101820',
+        'steel-blue': '#2A2D3E',
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-        },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
