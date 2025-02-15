@@ -47,10 +47,7 @@ const Navbar = () => {
                 placeholder="Search"
               />
             </div>
-            <button className="p-2 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
               <UserDropdown />
-              {/* <User className="h-5 w-5" /> */}
-            </button>
           </div>
         </div>
 

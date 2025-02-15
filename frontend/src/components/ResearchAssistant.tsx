@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "./ui/Card";
-import { Input } from "./ui/Input";
-import { Button } from "./ui/Button";
-import Navbar from './ui/Navbar';
+import { Card, CardHeader, CardTitle, CardContent } from "./Card";
+import { Input } from "./Input";
+import { Button } from "./Button";
+import Navbar from './Navbar';
 import {
   ChevronDown,
   ChevronUp,
@@ -13,7 +13,7 @@ import {
   Newspaper,
   Loader2,
 } from "lucide-react";
-import { Alert, AlertTitle, AlertDescription } from "./ui/Alert";
+import { Alert, AlertTitle, AlertDescription } from "./Alert";
 
 const BASE_URL = "http://localhost:8000";
 
