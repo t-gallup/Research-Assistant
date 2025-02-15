@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/Card";
 import { Input } from "./ui/Input";
 import { Button } from "./ui/Button";
+import Navbar from './ui/Navbar';
 import {
   ChevronDown,
   ChevronUp,
@@ -83,6 +84,7 @@ const QAGenerator = () => {
       icon: List,
       content: (
         <div className="space-y-3">
+
           {data.qnaPairs.map((qa, index) => (
             <Card
               key={index}
@@ -218,68 +220,72 @@ const QAGenerator = () => {
   ];
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-4 space-y-6">
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">Research Assistant</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="flex gap-2">
-            <div className="relative flex-1">
-              <LinkIcon className="absolute left-2 top-2.5 h-5 w-5 text-gray-400" />
-              <Input
-                type="url"
-                placeholder="Enter URL..."
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                className="pl-9"
-                disabled={isLoading}
-              />
-            </div>
-            <Button type="submit" disabled={isLoading || !url}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                "Analyze"
-              )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      {error && (
-        <Alert variant="destructive">
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {(data.qnaPairs.length > 0 ||
-        data.summary ||
-        data.recommendedArticles.length > 0) && (
-        <div className="space-y-4">
-          <div className="flex gap-2 border-b pb-2">
-            {sections.map((section) => (
-              <Button
-                key={section.id}
-                variant={expandedSection === section.id ? "default" : "outline"}
-                onClick={() => setExpandedSection(section.id)}
-                className="flex items-center gap-2 text-base font-medium"
-              >
-                <section.icon className="h-4 w-4" />
-                {section.title}
+    <>
+      <Navbar/>
+      <div className="w-full max-w-4xl mx-auto p-4 space-y-6">
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold">Explore Content</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="flex gap-2">
+              <div className="relative flex-1">
+                <LinkIcon className="absolute left-2 top-2.5 h-5 w-5 text-gray-400" />
+                <Input
+                  type="url"
+                  placeholder="Enter URL..."
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  className="pl-9"
+                  disabled={isLoading}
+                />
+              </div>
+              <Button type="submit" disabled={isLoading || !url}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  "Analyze"
+                )}
               </Button>
-            ))}
+            </form>
+          </CardContent>
+        </Card>
+
+        {error && (
+          <Alert variant="destructive">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {(data.qnaPairs.length > 0 ||
+          data.summary ||
+          data.recommendedArticles.length > 0) && (
+          <div className="space-y-4">
+            <div className="flex gap-2 border-b pb-2">
+              {sections.map((section) => (
+                <Button
+                  key={section.id}
+                  variant={expandedSection === section.id ? "default" : "outline"}
+                  onClick={() => setExpandedSection(section.id)}
+                  className="flex items-center gap-2 text-base font-medium"
+                >
+                  <section.icon className="h-4 w-4" />
+                  {section.title}
+                </Button>
+              ))}
+            </div>
+            <div className="min-h-[200px]">
+              {sections.find((s) => s.id === expandedSection)?.content}
+            </div>
           </div>
-          <div className="min-h-[200px]">
-            {sections.find((s) => s.id === expandedSection)?.content}
-          </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
+    
   );
 };
 

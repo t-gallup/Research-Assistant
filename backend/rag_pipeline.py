@@ -98,7 +98,9 @@ def extract_from_html(html):
     for doc in docs_transformed:
         doc_string += doc.page_content
     titles_transformed = bs_transformer.transform_documents(html, tags_to_extract=["title"])
-    article_title = titles_transformed[0].metadata['title']
+    article_title = ""
+    if titles_transformed and len(titles_transformed) > 0:
+        article_title = titles_transformed[0].metadata['title']
     return doc_string, article_title
 
 
@@ -241,8 +243,8 @@ def search_google(query):
 def get_top_5_articles(results, past_url):
     titles = []
     links = []
-    for i in range(5):
-        if 'items' in results and results['items'][i]['link'] != past_url:
-            titles.append(results['items'][i]['title'])
-            links.append(results['items'][i]['link'])
+    for item in results['items'][:5]:
+        if 'items' in results and item['link'] != past_url:
+            titles.append(item['title'])
+            links.append(item['link'])
     return titles, links

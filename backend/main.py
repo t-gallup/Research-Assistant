@@ -9,7 +9,12 @@ from fastapi.staticfiles import StaticFiles
 import tts as t
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.DEBUG,  # More detailed logging level
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 logger = logging.getLogger(__name__)
 
 
@@ -69,7 +74,7 @@ async def generate_qna(url_input: URLInput):
 
         # Get recommended articles
         rec_titles, rec_links = [], []
-        for topic in topic_list[:2]:
+        for topic in topic_list[:min(2, len(topic_list))]:
             results = rp.search_google(topic)
             new_rec_titles, new_rec_links = \
                 rp.get_top_5_articles(results, url_input.url)
