@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Menu, Search, User } from 'lucide-react';
+import UserDropdown from './UserDropdown';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -47,7 +48,8 @@ const Navbar = () => {
               />
             </div>
             <button className="p-2 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <User className="h-5 w-5" />
+              <UserDropdown />
+              {/* <User className="h-5 w-5" /> */}
             </button>
           </div>
         </div>
