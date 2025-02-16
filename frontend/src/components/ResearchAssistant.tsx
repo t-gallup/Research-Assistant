@@ -218,7 +218,7 @@ const QAGenerator = () => {
   ];
 
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom right, #00FFFF, #8A2BE2)' }}>
+    <div className="min-h-screen" >
       <Navbar />
       <div className="w-full max-w-4xl mx-auto p-4 space-y-6">
         <Card className="w-full bg-gray-800/80 backdrop-blur-sm">
