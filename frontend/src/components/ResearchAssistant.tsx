@@ -141,7 +141,7 @@ const ResearchAssistant = () => {
     },
     {
       id: "audio",
-      title: "Audio",
+      title: "Audio Summary",
       icon: Play,
       content: (
         <Card className="bg-gray-800/80 backdrop-blur-sm">
@@ -159,7 +159,7 @@ const ResearchAssistant = () => {
               </audio>
             ) : (
               <p className="text-gray-300">
-                No audio available. Please analyze an article to generate audio.
+                No audio available yet. Please wait for the article to finish processing.
               </p>
             )}
           </CardContent>

@@ -133,3 +133,17 @@ class PDFAudioSummarizer:
         except Exception as e:
             print(f"Error processing PDF: {str(e)}")
             return False
+
+
+# Usage example
+if __name__ == "__main__":
+    # Initialize with your API keys
+    summarizer = PDFAudioSummarizer(
+        openai_api_key=os.getenv('OPENAI_API_KEY'),
+        azure_key=os.getenv('AZURE_SPEECH_KEY'),
+        azure_region="westus2"
+    )
+
+    # Process a PDF
+    # url = ""
+    # summarizer.process_pdf(url, "dspy.mp3")
