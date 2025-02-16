@@ -222,7 +222,7 @@ const QAGenerator = () => {
   return (
     <>
       <Navbar/>
-      <div className="w-full max-w-4xl mx-auto p-4 space-y-6">
+      <div className="w-full max-w-4xl mx-auto p-4 space-y-6 ">
         <Card className="w-full">
           <CardHeader>
             <CardTitle className="text-2xl font-bold">Explore Content</CardTitle>
