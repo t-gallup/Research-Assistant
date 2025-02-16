@@ -69,7 +69,7 @@ const UserDropdown = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-gray-800 rounded-lg shadow-lg py-2 z-50">
+        <div className="absolute right-0 mt-2 w-64 bg-gray-800 rounded-lg shadow-lg py-2 z-[9999]">
           <div className="px-4 py-2 flex items-center space-x-3">
             <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-orange-500">
               {getGooglePhotoUrl() ? (
