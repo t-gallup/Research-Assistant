@@ -50,77 +50,70 @@ const UserDropdown = () => {
   };
 
   return (
-    <>
-      <div className="relative" ref={dropdownRef}>
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-orange-500"
-        >
-          {getGooglePhotoUrl() ? (
-            <img 
-              src={getGooglePhotoUrl()} 
-              alt="Profile"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <span className="text-white text-lg font-semibold">
-              {user?.displayName?.charAt(0)?.toUpperCase() || 'U'}
-            </span>
-          )}
-        </button>
-      </div>
+    <div className="relative" ref={dropdownRef} style={{ zIndex: 100 }}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-orange-500"
+      >
+        {getGooglePhotoUrl() ? (
+          <img 
+            src={getGooglePhotoUrl()} 
+            alt="Profile"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <span className="text-white text-lg font-semibold">
+            {user?.displayName?.charAt(0)?.toUpperCase() || 'U'}
+          </span>
+        )}
+      </button>
 
       {isOpen && (
-        <div className="fixed inset-0 bg-transparent z-50" onClick={() => setIsOpen(false)}>
-          <div 
-            className="fixed right-4 top-16 w-64 bg-gray-800 rounded-lg shadow-lg py-2"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="px-4 py-2 flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-orange-500">
-                {getGooglePhotoUrl() ? (
-                  <img 
-                    src={getGooglePhotoUrl()} 
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-white text-xl font-semibold">
-                    {user?.displayName?.charAt(0)?.toUpperCase() || 'U'}
-                  </span>
-                )}
+        <div className="fixed mt-2 w-64 bg-gray-800 rounded-lg shadow-lg py-2" style={{ right: '1rem', top: '3.5rem' }}>
+          <div className="px-4 py-2 flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-orange-500">
+              {getGooglePhotoUrl() ? (
+                <img 
+                  src={getGooglePhotoUrl()} 
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-white text-xl font-semibold">
+                  {user?.displayName?.charAt(0)?.toUpperCase() || 'U'}
+                </span>
+              )}
+            </div>
+            <div>
+              <div className="text-white text-lg font-semibold">
+                {user?.displayName || 'User'}
               </div>
-              <div>
-                <div className="text-white text-lg font-semibold">
-                  {user?.displayName || 'User'}
-                </div>
-                <div className="text-gray-400 text-sm">{user?.email}</div>
-              </div>
+              <div className="text-gray-400 text-sm">{user?.email}</div>
             </div>
+          </div>
 
-            <div className="border-t border-gray-700">
-              <button
-                onClick={handleProfileClick}
-                className="w-full px-4 py-2 text-left text-gray-300 hover:bg-gray-700 flex items-center space-x-2"
-              >
-                <User className="w-4 h-4" />
-                <span>Your profile</span>
-              </button>
-            </div>
+          <div className="border-t border-gray-700">
+            <button
+              onClick={handleProfileClick}
+              className="w-full px-4 py-2 text-left text-gray-300 hover:bg-gray-700 flex items-center space-x-2"
+            >
+              <User className="w-4 h-4" />
+              <span>Your profile</span>
+            </button>
+          </div>
 
-            <div className="border-t border-gray-700">
-              <button
-                onClick={handleLogout}
-                className="w-full px-4 py-2 text-left text-gray-300 hover:bg-gray-700 flex items-center space-x-2"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Log out</span>
-              </button>
-            </div>
+          <div className="border-t border-gray-700">
+            <button
+              onClick={handleLogout}
+              className="w-full px-4 py-2 text-left text-gray-300 hover:bg-gray-700 flex items-center space-x-2"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Log out</span>
+            </button>
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
 

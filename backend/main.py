@@ -27,7 +27,7 @@ app = FastAPI()
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure based on your needs
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -46,30 +46,14 @@ async def health_check():
 @app.post("/api/generate-qna")
 async def generate_qna(url_input: URLInput):
     try:
-        logger.info(f"Processing URL: {url_input.url}")
-
-        file_type = rp.check_file_type(url_input.url)
-        doc_string, article_title = "", ""
-
-        if file_type == "html":
-            html = await rp.load_html(url_input.url)
-            doc_string, article_title = rp.extract_from_html(html)
-        elif file_type == "pdf":
-            pdf, response = rp.load_pdf(url_input.url)
-            doc_string, article_title = rp.extract_from_pdf(pdf, response)
-
-        logger.info("Initial content extracted")
+        logger.info(f"Processing URL: {url_input}")
 
         # Get initial summary using BART
-        initial_summary = rp.summarize_content(doc_string)
+        initial_summary, article_title = rp.summarize_content(url_input.url)
         logger.info("Initial summary generated")
 
-        # Refine the summary using OpenAI
-        refined_summary = rp.refine_summary(initial_summary)
-        logger.info("Summary refined")
-
-        topic_list = rp.prompt_llm_for_related_topics(refined_summary)
-        questions, answers = rp.prompt_llm(refined_summary)
+        topic_list = rp.prompt_llm_for_related_topics(initial_summary)
+        questions, answers = rp.prompt_llm(initial_summary)
         logger.info("Q&A generated")
 
         # Get recommended articles
@@ -85,7 +69,7 @@ async def generate_qna(url_input: URLInput):
 
         return {
             "articleTitle": article_title,
-            "summary": refined_summary,
+            "summary": initial_summary,
             "qnaPairs": [{"question": q, "answer": a} for q,
                          a in zip(questions, answers)],
             "recommendedArticles": [{"title": t, "link": l} for t,
