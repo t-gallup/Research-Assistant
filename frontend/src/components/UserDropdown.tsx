@@ -1,22 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LogOut } from 'lucide-react';
+import { LogOut, User } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
 
 const UserDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const auth = getAuth();
   const user = auth.currentUser;
+  const navigate = useNavigate();
 
-  // Function to get proper Google profile picture
   const getGooglePhotoUrl = () => {
     if (!user) return null;
     
-    // Check if user has a photoURL directly
     const photoUrl = user.photoURL || user.providerData?.[0]?.photoURL;
     if (!photoUrl) return null;
 
-    // Handle Google photos specifically
     if (photoUrl.includes('googleusercontent.com')) {
       const baseUrl = photoUrl.split('=')[0];
       return `${baseUrl}=s96-c`;
@@ -43,6 +42,11 @@ const UserDropdown = () => {
     } catch (error) {
       console.error('Failed to log out:', error);
     }
+  };
+
+  const handleProfileClick = () => {
+    navigate('/profile');
+    setIsOpen(false);
   };
 
   return (
@@ -89,9 +93,13 @@ const UserDropdown = () => {
           </div>
 
           <div className="border-t border-gray-700">
-            <div className="px-4 py-2 flex items-center justify-between">
-              <div className="text-gray-300 text-sm">Your profile</div>
-            </div>
+            <button
+              onClick={handleProfileClick}
+              className="w-full px-4 py-2 text-left text-gray-300 hover:bg-gray-700 flex items-center space-x-2"
+            >
+              <User className="w-4 h-4" />
+              <span>Your profile</span>
+            </button>
           </div>
 
           <div className="border-t border-gray-700">
