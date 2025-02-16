@@ -6,6 +6,7 @@ import { firebaseConfig } from './firebase/config';
 import { AuthProvider } from './contexts/AuthContext';
 import AuthPage from './components/Auth/AuthPage';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
+import Profile from './components/Profile';
 
 initializeApp(firebaseConfig);
 
@@ -21,6 +22,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ResearchAssistant />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
                 </ProtectedRoute>
               }
             />
