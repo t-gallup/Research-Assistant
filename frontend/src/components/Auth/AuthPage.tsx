@@ -44,8 +44,7 @@ const AuthPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" 
-         style={{ background: 'linear-gradient(to bottom right, #00FFFF, #8A2BE2)' }}>
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="bg-gray-800/80 backdrop-blur-sm rounded-lg p-8 shadow-xl">
           <h2 className="text-center text-3xl font-extrabold text-white mb-8">
@@ -92,11 +91,8 @@ const AuthPage: React.FC = () => {
 
           <div className="mt-6">
             <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-600"></div>
-              </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-gray-800/80 text-gray-400">
+                <span className="px-2  text-white">
                   Or continue with
                 </span>
               </div>
@@ -105,7 +101,7 @@ const AuthPage: React.FC = () => {
             <div className="mt-6">
               <button
                 onClick={handleGoogleAuth}
-                className="w-full flex justify-center py-2 px-4 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-white bg-gray-700/60 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                className="w-full flex justify-center py-2 px-4 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
               >
                 Google
               </button>
@@ -115,7 +111,7 @@ const AuthPage: React.FC = () => {
           <div className="mt-6 text-center">
             <button
               type="button"
-              className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors duration-200"
+              className="text-sm text-white hover:text-cyan-300 transition-colors duration-200"
               onClick={() => setIsSignUp(!isSignUp)}
             >
               {isSignUp
