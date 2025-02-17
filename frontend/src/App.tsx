@@ -1,12 +1,12 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import ResearchAssistant from './components/ResearchAssistant';
-import { initializeApp } from 'firebase/app';
-import { firebaseConfig } from './firebase/config';
-import { AuthProvider } from './contexts/AuthContext';
-import AuthPage from './components/Auth/AuthPage';
-import ProtectedRoute from './components/Auth/ProtectedRoute';
-import Profile from './components/Profile';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import ResearchAssistant from "./pages/ResearchAssistant";
+import { initializeApp } from "firebase/app";
+import { firebaseConfig } from "./firebase/config";
+import { AuthProvider } from "./contexts/AuthContext";
+import AuthPage from "./components/Auth/AuthPage";
+import ProtectedRoute from "./components/Auth/ProtectedRoute";
+import Profile from "./pages/Profile";
 
 initializeApp(firebaseConfig);
 

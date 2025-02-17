@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "./Card";
-import { Input } from "./Input";
-import { Button } from "./Button";
-import Navbar from './Navbar';
+import { Card, CardHeader, CardTitle, CardContent } from "../components/Card";
+import { Input } from "../components/Input";
+import { Button } from "../components/Button";
+import Navbar from "../components/Navbar";
 import {
   ChevronDown,
   ChevronUp,
@@ -13,7 +13,7 @@ import {
   Newspaper,
   Loader2,
 } from "lucide-react";
-import { Alert, AlertTitle, AlertDescription } from "./Alert";
+import { Alert, AlertTitle, AlertDescription } from "../components/Alert";
 
 const BASE_URL = "http://localhost:8000";
 
@@ -159,7 +159,8 @@ const ResearchAssistant = () => {
               </audio>
             ) : (
               <p className="text-gray-300">
-                No audio available yet. Please wait for the article to finish processing.
+                No audio available yet. Please wait for the article to finish
+                processing.
               </p>
             )}
           </CardContent>
@@ -173,7 +174,10 @@ const ResearchAssistant = () => {
       content: (
         <div className="space-y-3">
           {data.recommendedArticles.map((article, index) => (
-            <Card key={index} className="hover:shadow-md transition-shadow bg-gray-800/80 backdrop-blur-sm">
+            <Card
+              key={index}
+              className="hover:shadow-md transition-shadow bg-gray-800/80 backdrop-blur-sm"
+            >
               <CardContent className="p-4">
                 <div className="flex flex-col gap-3">
                   <div className="flex-1">
@@ -185,10 +189,12 @@ const ResearchAssistant = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          window.open(article.link, '_blank');
+                          window.open(article.link, "_blank");
                         }}
                         className="flex items-center gap-2 text-white border-gray-600 hover:bg-gray-700"
-                      >View Original</Button>
+                      >
+                        View Original
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
@@ -218,12 +224,14 @@ const ResearchAssistant = () => {
   ];
 
   return (
-    <div className="min-h-screen" >
+    <div className="min-h-screen">
       <Navbar />
       <div className="w-full max-w-4xl mx-auto p-4 space-y-6">
         <Card className="w-full bg-gray-800/80 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-white">Explore Content</CardTitle>
+            <CardTitle className="text-2xl font-bold text-white">
+              Explore Content
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="flex gap-2">
@@ -238,9 +246,9 @@ const ResearchAssistant = () => {
                   disabled={isLoading}
                 />
               </div>
-              <Button 
-                variant="outline" 
-                type="submit" 
+              <Button
+                variant="outline"
+                type="submit"
                 disabled={isLoading || !url}
                 className="text-white border-gray-600 hover:bg-gray-700"
               >
@@ -272,12 +280,14 @@ const ResearchAssistant = () => {
               {sections.map((section) => (
                 <Button
                   key={section.id}
-                  variant={expandedSection === section.id ? "default" : "outline"}
+                  variant={
+                    expandedSection === section.id ? "default" : "outline"
+                  }
                   onClick={() => setExpandedSection(section.id)}
                   className={`flex items-center gap-2 text-base font-medium ${
-                    expandedSection === section.id 
-                      ? 'bg-gray-800 text-white' 
-                      : 'text-white border-gray-600 hover:bg-gray-700'
+                    expandedSection === section.id
+                      ? "bg-gray-800 text-white"
+                      : "text-white border-gray-600 hover:bg-gray-700"
                   }`}
                 >
                   <section.icon className="h-4 w-4" />
