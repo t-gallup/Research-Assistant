@@ -10,9 +10,8 @@ import tts as t
 import httpx
 
 # Set up logging
-# logging.basicConfig(level=logging.INFO)
 logging.basicConfig(
-    level=logging.DEBUG,  # More detailed logging level
+    level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
@@ -90,10 +89,16 @@ async def generate_audio(url_input: URLInput):
             azure_region="westus2"
         )
         output_file = f"audio/audio_{uuid.uuid4()}.mp3"
-        success = summarizer.process_file(url_input.url, output_file)
-        if success:
-            return {"status": "success", "audio_file":
-                    os.path.basename(output_file)}
+        result = summarizer.process_file(url_input.url, output_file)
+        
+        if result["success"]:
+            return {
+                "status": "success",
+                "audio_file": os.path.basename(output_file),
+                "chunk_summaries": result["chunk_summaries"]
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to process file")
 
     except Exception as e:
         logger.error(f"Error generating audio: {str(e)}")
