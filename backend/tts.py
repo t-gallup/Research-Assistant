@@ -14,7 +14,7 @@ import httpx
 load_dotenv()
 
 logging.basicConfig(
-    level=logging.DEBUG,  # More detailed logging level
+    level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
@@ -62,17 +62,12 @@ class PDFAudioSummarizer:
 
     def extract_html_with_chunks(self, html_content, chunk_size=4000):
         """Extract text from HTML and split into chunks"""
-        # Parse the HTML
-        soup = BeautifulSoup(self, html_content, 'html.parser')
+        soup = BeautifulSoup(html_content, 'html.parser')
         
-        # Extract text, removing script and style elements
         for script_or_style in soup(['script', 'style']):
             script_or_style.decompose()
 
-        # Get text and remove extra whitespace
         text = ' '.join(soup.get_text().split())
-
-        # Split text into chunks
         chunks = []
         current_chunk = ""
         words = text.split()
@@ -135,9 +130,7 @@ class PDFAudioSummarizer:
             region=self.azure_region
         )
 
-        # Configure voice
         speech_config.speech_synthesis_voice_name = "en-US-BrianMultilingualNeural"
-
         audio_config = speechsdk.audio.AudioConfig(filename=output_file)
         synthesizer = speechsdk.SpeechSynthesizer(
             speech_config=speech_config,
@@ -154,54 +147,56 @@ class PDFAudioSummarizer:
         try:
             doc_data = httpx.get(url)
             content_type = doc_data.headers.get('Content-Type', '')
+            chunks = []
+
             if content_type != "application/pdf":
                 logger.debug("Downloading PDF...")
                 pdf_file = self.download_pdf(url)
-
                 logger.debug("Extracting text in chunks...")
                 chunks = self.extract_pdf_with_chunks(pdf_file)
 
             elif content_type != "text/html":
                 logger.debug("Downloading HTML...")
                 html_file = self.download_html(url)
-
                 logger.debug("Extracting text in chunks...")
                 chunks = self.extract_html_with_chunks(html_file)
             
             else:
                 logger.debug(f"File type: {content_type} audio not supported yet")
-                return False
+                return {"success": False, "chunk_summaries": []}
 
             logger.debug(f"Summarizing {len(chunks)} chunks...")
             chunk_summaries = []
             for i, chunk in enumerate(tqdm(chunks)):
                 summary = self.summarize_chunk(chunk)
                 if summary:
-                    chunk_summaries.append(summary)
+                    chunk_summaries.append({
+                        "page": i + 1,
+                        "summary": summary
+                    })
 
             logger.debug("Generating final summary...")
-            final_summary = self.generate_final_summary(chunk_summaries)
+            final_summary = self.generate_final_summary([s["summary"] for s in chunk_summaries])
 
             logger.debug("Converting to speech...")
             self.text_to_speech_azure(final_summary, output_file)
 
             logger.debug(f"Summary audio saved to {output_file}")
-            return True
+            return {
+                "success": True,
+                "chunk_summaries": chunk_summaries,
+                "final_summary": final_summary
+            }
 
         except Exception as e:
-            logger.error(f"Error processing PDF: {str(e)}")
-            return False
+            logger.error(f"Error processing file: {str(e)}")
+            return {"success": False, "chunk_summaries": [], "error": str(e)}
 
 
 # Usage example
 if __name__ == "__main__":
-    # Initialize with your API keys
     summarizer = PDFAudioSummarizer(
         openai_api_key=os.getenv('OPENAI_API_KEY'),
         azure_key=os.getenv('AZURE_SPEECH_KEY'),
         azure_region="westus2"
     )
-
-    # Process a PDF
-    # url = ""
-    # summarizer.process_pdf(url, "dspy.mp3")
