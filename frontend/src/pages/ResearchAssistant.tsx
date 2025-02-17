@@ -12,6 +12,7 @@ import {
   List,
   Newspaper,
   Loader2,
+  FileText
 } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "../components/Alert";
 
@@ -30,6 +31,8 @@ const ResearchAssistant = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [audioFile, setAudioFile] = useState<string | null>(null);
+  const [expandedChunkSummary, setExpandedChunkSummary] = useState(null);
+  const [chunkSummaries, setChunkSummaries] = useState([]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -68,6 +71,9 @@ const ResearchAssistant = () => {
       if (audioData.audio_file) {
         setAudioFile(audioData.audio_file);
       }
+      if (audioData.chunk_summaries) {
+        setChunkSummaries(audioData.chunk_summaries);
+      }
     } catch (err) {
       setError(err.message);
       console.error("Error:", err);
@@ -86,7 +92,7 @@ const ResearchAssistant = () => {
           {data.qnaPairs.map((qa, index) => (
             <Card
               key={index}
-              className="w-full transition-all duration-200 hover:shadow-md bg-gray-800/80 backdrop-blur-sm"
+              className="w-full min-h-[150px] transition-all duration-200 hover:shadow-md bg-gray-800/80 backdrop-blur-sm"
             >
               <div
                 onClick={() =>
@@ -120,7 +126,7 @@ const ResearchAssistant = () => {
       title: "Article Summary",
       icon: BookOpen,
       content: (
-        <Card className="bg-gray-800/80 backdrop-blur-sm">
+        <Card className="min-h-[150px] bg-gray-800/80 backdrop-blur-sm">
           <CardContent className="pt-6">
             <h2 className="text-xl font-bold mb-6 text-white">
               {data.articleTitle}
@@ -144,7 +150,7 @@ const ResearchAssistant = () => {
       title: "Audio Summary",
       icon: Play,
       content: (
-        <Card className="bg-gray-800/80 backdrop-blur-sm">
+        <Card className="min-h-[150px] bg-gray-800/80 backdrop-blur-sm">
           <CardContent className="p-4">
             <h3 className="text-lg font-semibold text-white mb-2">
               Audio Playback
@@ -165,6 +171,44 @@ const ResearchAssistant = () => {
             )}
           </CardContent>
         </Card>
+      ),
+    },
+    {
+      id: "pagesummary",
+      title: "Page-by-Page Summary",
+      icon: FileText,
+      content: (
+        <div className="space-y-3">
+          {chunkSummaries.map((chunk, index) => (
+            <Card
+              key={index}
+              className="w-full min-h-[150px] transition-all duration-200 hover:shadow-md bg-gray-800/80 backdrop-blur-sm"
+            >
+              <div
+                onClick={() =>
+                  setExpandedChunkSummary(expandedChunkSummary === index ? null : index)
+                }
+                className="flex items-center justify-between p-4 cursor-pointer"
+              >
+                <h3 className="text-lg font-semibold pr-4 text-white">
+                  Page {chunk.page}
+                </h3>
+                {expandedChunkSummary === index ? (
+                  <ChevronUp className="h-5 w-5 flex-shrink-0 text-white" />
+                ) : (
+                  <ChevronDown className="h-5 w-5 flex-shrink-0 text-white" />
+                )}
+              </div>
+              {expandedChunkSummary === index && (
+                <CardContent className="pt-0 pb-4">
+                  <p className="text-gray-300 leading-relaxed text-base">
+                    {chunk.summary}
+                  </p>
+                </CardContent>
+              )}
+            </Card>
+          ))}
+        </div>
       ),
     },
     {
@@ -274,7 +318,8 @@ const ResearchAssistant = () => {
 
         {(data.qnaPairs.length > 0 ||
           data.summary ||
-          data.recommendedArticles.length > 0) && (
+          data.recommendedArticles.length > 0 ||
+          chunkSummaries.length > 0) && (
           <div className="space-y-4">
             <div className="flex gap-2 border-b border-gray-600 pb-2">
               {sections.map((section) => (
