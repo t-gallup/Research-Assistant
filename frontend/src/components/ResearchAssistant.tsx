@@ -181,14 +181,14 @@ const ResearchAssistant = () => {
                       {article.title}
                     </h3>
                     <div className="flex gap-3">
-                      <a
-                        href={article.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-cyan-400 hover:text-cyan-300 text-sm"
-                      >
-                        View Original →
-                      </a>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          window.open(article.link, '_blank');
+                        }}
+                        className="flex items-center gap-2 text-white border-gray-600 hover:bg-gray-700"
+                      >View Original</Button>
                       <Button
                         variant="outline"
                         size="sm"
