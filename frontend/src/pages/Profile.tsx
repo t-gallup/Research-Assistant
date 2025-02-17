@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { getAuth, updateProfile } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import Navbar from './Navbar';
+import Navbar from '../components/Navbar';
 
 const Profile = () => {
   const auth = getAuth();
   const user = auth.currentUser;
   const navigate = useNavigate();
   const [name, setName] = useState(user?.displayName || '');
-  const [email, setEmail] = useState(user?.email || '');
+  const [email, _] = useState(user?.email || '');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
