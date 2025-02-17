@@ -217,8 +217,7 @@ def summarize_content(url):
             prompt])
     title = ""
     if content_type == 'application/pdf':
-        pdf_file = BytesIO(response.content)
-
+        pdf_file = BytesIO(doc_data.content)
         try:
             pdf_reader = PdfReader(pdf_file)
             # Try to get title from PDF metadata
@@ -227,7 +226,7 @@ def summarize_content(url):
             logger.exception(e)
             pass
     if content_type == 'text/html':
-        soup = BeautifulSoup(response.text, 'html.parser')
+        soup = BeautifulSoup(doc_data, 'html.parser')
         title = ""
         if soup.title:
             title = soup.title.string.strip()
@@ -249,6 +248,8 @@ def prompt_llm(final_summary):
     that will help readers understand the content better then provide
     informative answers to these questions.
     Only give questions that can be answered from the content of the article.
+    For the answers, don't say this question was answered in the document,
+    instead just provide the answer from the document.
     Ensure each question is immediately followed by its answer without adding any labels like "Question" or "Answer". 
     Just output the question followed directly by the answer.
     Make sure you don't use LaTeX in your questions and answers.

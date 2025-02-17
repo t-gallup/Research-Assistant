@@ -7,6 +7,7 @@ import os
 import uuid
 from fastapi.staticfiles import StaticFiles
 import tts as t
+import httpx
 
 # Set up logging
 # logging.basicConfig(level=logging.INFO)
@@ -48,7 +49,7 @@ async def generate_qna(url_input: URLInput):
     try:
         logger.info(f"Processing URL: {url_input}")
 
-        # Get initial summary using BART
+        # Get initial summary using Gemini
         initial_summary, article_title = rp.summarize_content(url_input.url)
         logger.info("Initial summary generated")
 
@@ -88,16 +89,11 @@ async def generate_audio(url_input: URLInput):
             azure_key=os.getenv('AZURE_SPEECH_KEY'),
             azure_region="westus2"
         )
-
         output_file = f"audio/audio_{uuid.uuid4()}.mp3"
-        success = summarizer.process_pdf(url_input.url, output_file)
-
+        success = summarizer.process_file(url_input.url, output_file)
         if success:
             return {"status": "success", "audio_file":
                     os.path.basename(output_file)}
-        else:
-            raise HTTPException(status_code=500,
-                                detail="Failed to generate audio")
 
     except Exception as e:
         logger.error(f"Error generating audio: {str(e)}")
