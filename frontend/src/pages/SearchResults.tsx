@@ -99,10 +99,10 @@ const SearchResults = () => {
                                 <CardContent className="p-6">
                                     <div className="flex flex-col gap-3">
                                         <div className="flex-1">
-                                            <h3 className="text-lg font-semibold text-white mb-2">
+                                            <h3 className="text-lg font-semibold text-white mb-2 break-words">
                                                 {result.title}
                                             </h3>
-                                            <p className="text-gray-300 mb-4">{result.snippet}</p>
+                                            <p className="text-gray-300 mb-4 break-words">{result.snippet}</p>
                                             <div className="flex gap-3">
                                                 <Button
                                                     variant="outline_color"
