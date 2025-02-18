@@ -2,7 +2,7 @@ name: Deploy to Google Cloud
 
 on:
   push:
-    branches: [azure-testing]
+    branches: [main]
     paths:
       - "backend/**"
       - "frontend/**"
