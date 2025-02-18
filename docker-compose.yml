@@ -8,6 +8,7 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - AZURE_SPEECH_KEY=${AZURE_SPEECH_KEY}
     volumes:
@@ -29,6 +30,7 @@ services:
     image: redis:alpine
     ports:
       - "6379:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
 

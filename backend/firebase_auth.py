@@ -15,7 +15,7 @@ def init_firebase():
     else:
         # Use service account key file if local
         cred = credentials.Certificate('firebase-adminsdk.json')
-    
+
     firebase_admin.initialize_app(cred)
 
 
@@ -23,7 +23,7 @@ async def verify_firebase_token(request: Request):
     token = request.headers.get('Authorization', '').replace('Bearer ', '')
     if not token:
         raise HTTPException(status_code=401, detail='No token provided')
-    
+
     try:
         decoded_token = auth.verify_id_token(token)
         request.state.user_id = decoded_token['uid']

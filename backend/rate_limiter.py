@@ -6,8 +6,10 @@ import os
 
 class RateLimiter:
     def __init__(self):
+        redis_host = 'localhost' if os.getenv('ENVIRONMENT') != 'production' else os.getenv('REDIS_HOST')
+
         self.redis = Redis(
-            host=os.getenv('REDIS_HOST', 'localhost'),
+            host=redis_host,
             port=int(os.getenv('REDIS_PORT', 6379)),
             username=os.getenv('REDIS_USERNAME'),
             password=os.getenv('REDIS_PASSWORD'),
@@ -41,10 +43,10 @@ class RateLimiter:
         
         return max_requests - current_requests
 
-    async def check_rate_limit(self, request: Request):
+    async def check_rate_limit(self, request: Request, token: dict):
         """Middleware to check rate limits."""
         # user_id = request.headers.get('X-User-ID', 'anonymous')
-        user_id = request.state.user_id
+        user_id = token.get('uid')
         
         today = datetime.now().strftime('%Y-%m-%d')
         requests_key = f"user:{user_id}:requests:{today}"

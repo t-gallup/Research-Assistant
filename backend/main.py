@@ -9,9 +9,11 @@ from fastapi.staticfiles import StaticFiles
 import tts as t
 from rate_limiter import rate_limiter
 from config import load_secrets
-from firebase_auth import verify_firebase_token
+from firebase_auth import init_firebase, verify_firebase_token
 
 load_secrets()
+
+init_firebase()
 
 # Set up logging
 logging.basicConfig(
@@ -42,15 +44,23 @@ app.mount("/audio", StaticFiles(directory="audio"), name="audio")
 os.makedirs("audio", exist_ok=True)
 
 
+@app.middleware("http")
+async def debug_middleware(request: Request, call_next):
+    print("Auth header:", request.headers.get("Authorization"))
+    response = await call_next(request)
+    return response
+
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
 
 
 @app.get("/api/rate-limit")
-async def get_rate_limit(request: Request, _: dict = Depends(verify_firebase_token)):
-    # user_id = request.headers.get('X-User-ID', 'anonymous')
-    user_id = request.state.user_id
+async def get_rate_limit(request: Request,
+                         token: dict = Depends(verify_firebase_token)
+                         ):
+    user_id = token.get('uid')
     remaining = rate_limiter.get_remaining_requests(user_id)
     tier = rate_limiter.get_user_tier(user_id)
     limit = rate_limiter.rate_limit_tiers[tier]
@@ -107,9 +117,12 @@ async def generate_qna(url_input: URLInput,
 
 
 @app.post("/api/generate-audio")
-async def generate_audio(url_input: URLInput, request: Request):
+async def generate_audio(url_input: URLInput,
+                         request: Request,
+                         token: dict = Depends(verify_firebase_token)
+                         ):
     # Check rate limit
-    await rate_limiter.check_rate_limit(request)
+    await rate_limiter.check_rate_limit(request, token)
     
     try:
         summarizer = t.PDFAudioSummarizer(

@@ -15,6 +15,8 @@ import {
   FileText
 } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "../components/Alert";
+import { getAuth } from 'firebase/auth';
+
 
 const BASE_URL = "http://localhost:8000";
 
@@ -40,16 +42,35 @@ const ResearchAssistant = () => {
     setIsLoading(true);
 
     try {
+      const auth = getAuth()
+      const user = auth.currentUser
+
+      if (!user) {
+        setError("Please sign in to continue");
+        setIsLoading(false);
+        return;
+      }
+
+      const token = await user.getIdToken();
+
       const qnaResponse = await fetch(`${BASE_URL}/api/generate-qna`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({ url }),
       });
 
       if (!qnaResponse.ok) {
-        throw new Error("Failed to generate content");
+        if (qnaResponse.status === 401) {
+            setError("Authentication failed. Please sign in again.");
+        } else if (qnaResponse.status === 429) {
+            setError("Rate limit exceeded. Please try again later.");
+        } else {
+            throw new Error("Failed to generate content");
+        }
+        return;
       }
 
       const responseData = await qnaResponse.json();
@@ -59,12 +80,20 @@ const ResearchAssistant = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({ url }),
       });
 
       if (!audioResponse.ok) {
-        throw new Error("Failed to generate audio");
+        if (audioResponse.status === 401) {
+            setError("Authentication failed. Please sign in again.");
+        } else if (audioResponse.status === 429) {
+            setError("Rate limit exceeded. Please try again later.");
+        } else {
+            throw new Error("Failed to generate content");
+        }
+        return;
       }
 
       const audioData = await audioResponse.json();
