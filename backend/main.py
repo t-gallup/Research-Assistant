@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import rag_pipeline as rp
@@ -8,6 +8,7 @@ import uuid
 from fastapi.staticfiles import StaticFiles
 import tts as t
 import httpx
+from rate_limiter import rate_limiter
 
 # Set up logging
 logging.basicConfig(
@@ -43,8 +44,26 @@ async def health_check():
     return {"status": "healthy"}
 
 
+@app.get("/api/rate-limit")
+async def get_rate_limit(request: Request):
+    user_id = request.headers.get('X-User-ID', 'anonymous')
+    remaining = rate_limiter.get_remaining_requests(user_id)
+    tier = rate_limiter.get_user_tier(user_id)
+    limit = rate_limiter.rate_limit_tiers[tier]
+    
+    return {
+        "tier": tier,
+        "limit": limit,
+        "remaining": remaining,
+        "reset": "next day"
+    }
+
+
 @app.post("/api/generate-qna")
-async def generate_qna(url_input: URLInput):
+async def generate_qna(url_input: URLInput, request: Request):
+    # Check rate limit
+    await rate_limiter.check_rate_limit(request)
+    
     try:
         logger.info(f"Processing URL: {url_input}")
 
@@ -81,7 +100,10 @@ async def generate_qna(url_input: URLInput):
 
 
 @app.post("/api/generate-audio")
-async def generate_audio(url_input: URLInput):
+async def generate_audio(url_input: URLInput, request: Request):
+    # Check rate limit
+    await rate_limiter.check_rate_limit(request)
+    
     try:
         summarizer = t.PDFAudioSummarizer(
             openai_api_key=os.getenv('OPENAI_API_KEY'),
