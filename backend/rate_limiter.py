@@ -3,11 +3,13 @@ from redis import Redis
 from datetime import datetime, timedelta
 import os
 
+
 class RateLimiter:
     def __init__(self):
         self.redis = Redis(
             host=os.getenv('REDIS_HOST', 'localhost'),
             port=int(os.getenv('REDIS_PORT', 6379)),
+            password=os.getenv('REDIS_PASSWORD'),
             db=0,
             decode_responses=True
         )
@@ -40,8 +42,8 @@ class RateLimiter:
 
     async def check_rate_limit(self, request: Request):
         """Middleware to check rate limits."""
-        # Get user ID from request (you'll need to implement authentication)
-        user_id = request.headers.get('X-User-ID', 'anonymous')
+        # user_id = request.headers.get('X-User-ID', 'anonymous')
+        user_id = request.state.user_id
         
         today = datetime.now().strftime('%Y-%m-%d')
         requests_key = f"user:{user_id}:requests:{today}"

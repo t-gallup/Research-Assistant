@@ -7,8 +7,11 @@ import os
 import uuid
 from fastapi.staticfiles import StaticFiles
 import tts as t
-import httpx
 from rate_limiter import rate_limiter
+from config import load_secrets
+from firebase_auth import verify_firebase_token
+
+load_secrets()
 
 # Set up logging
 logging.basicConfig(
@@ -45,8 +48,9 @@ async def health_check():
 
 
 @app.get("/api/rate-limit")
-async def get_rate_limit(request: Request):
-    user_id = request.headers.get('X-User-ID', 'anonymous')
+async def get_rate_limit(request: Request, _: dict = Depends(verify_firebase_token)):
+    # user_id = request.headers.get('X-User-ID', 'anonymous')
+    user_id = request.state.user_id
     remaining = rate_limiter.get_remaining_requests(user_id)
     tier = rate_limiter.get_user_tier(user_id)
     limit = rate_limiter.rate_limit_tiers[tier]
@@ -60,9 +64,12 @@ async def get_rate_limit(request: Request):
 
 
 @app.post("/api/generate-qna")
-async def generate_qna(url_input: URLInput, request: Request):
+async def generate_qna(url_input: URLInput,
+                       request: Request,
+                       token: dict = Depends(verify_firebase_token)
+                       ):
     # Check rate limit
-    await rate_limiter.check_rate_limit(request)
+    await rate_limiter.check_rate_limit(request, token)
     
     try:
         logger.info(f"Processing URL: {url_input}")

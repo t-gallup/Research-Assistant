@@ -9,6 +9,7 @@ redis
 fastapi-limiter
 python-jose[cryptography]
 python-multipart
+firebase-admin
 
 # LangChain and related
 langchain
@@ -25,6 +26,7 @@ protobuf
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
+google-cloud-secret-manager
 google-genai
 
 # Utils
