@@ -1,5 +1,16 @@
-redis
-fastapi-limiter
-python-jose[cryptography]
-python-multipart
-# ... (keep existing requirements)
+redis==5.0.1
+fastapi-limiter==0.1.5
+python-jose[cryptography]==3.3.0
+python-multipart==0.0.6
+pydantic>=2.7.4
+pydantic-core>=2.18.2
+langchain>=0.3.13
+langchain-core>=0.3.31
+langchain-openai>=0.3.2
+openai>=1.58.1
+protobuf>=5.28.2
+tensorflow>=2.18.0
+cohere>=5.11.3
+langsmith>=0.1.17
+langchain-text-splitters>=0.3.4
+# Keep existing requirements below this line
