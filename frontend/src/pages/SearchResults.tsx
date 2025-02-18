@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/Card";
-import Navbar from '../components/Navbar'
+import { Button } from "../components/Button";
+import Navbar from '../components/Navbar';
+import { Loader2 } from "lucide-react";
 
 interface SearchResult {
     title: string;
@@ -13,6 +15,9 @@ const SearchResults = () => {
     const [results, setResults] = useState<SearchResult[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    
+    const navigate = useNavigate();
     
     // Get search query from URL parameters
     const location = useLocation();
@@ -43,6 +48,12 @@ const SearchResults = () => {
         fetchResults();
     }, [searchQuery]);
 
+    const handleAnalyzeArticle = (url: string) => {
+        setIsAnalyzing(true);
+        // Navigate to home page with the URL
+        navigate('/?url=' + encodeURIComponent(url));
+    };
+
     if (isLoading) {
         return (
             <div className="flex justify-center items-center min-h-screen">
@@ -67,45 +78,63 @@ const SearchResults = () => {
     }
 
     return (
-        <div className="container mx-auto px-4 py-8">
+        <div className="min-h-screen">
             <Navbar />
-            <h1 className="text-2xl font-bold mb-6">Search Results for: {searchQuery}</h1>
-            
-            {results.length === 0 ? (
-                <Card>
-                    <CardContent className="py-4">
-                        <p>No results found.</p>
-                    </CardContent>
-                </Card>
-            ) : (
-                <div className="space-y-4">
-                    {results.map((result, index) => (
-                        <Card key={index} className="hover:shadow-lg transition-shadow">
-                            <CardHeader>
-                                <CardTitle>
-                                    <a href={result.link} 
-                                       target="_blank" 
-                                       rel="noopener noreferrer"
-                                       className="text-blue-600 hover:text-blue-800">
-                                        {result.title}
-                                    </a>
-                                </CardTitle>
-                                <CardDescription>
-                                    <a href={result.link} 
-                                       target="_blank" 
-                                       rel="noopener noreferrer"
-                                       className="text-green-600">
-                                        {result.link}
-                                    </a>
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-gray-600">{result.snippet}</p>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            )}
+            <div className="w-full max-w-4xl mx-auto p-6 space-y-6">
+                <h1 className="text-2xl font-bold mb-6 text-white">Search Results for: {searchQuery}</h1>
+                
+                {results.length === 0 ? (
+                    <Card className="bg-gray-800/80 backdrop-blur-sm">
+                        <CardContent className="py-4">
+                            <p className="text-white">No results found.</p>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <div className="space-y-3">
+                        {results.map((result, index) => (
+                            <Card
+                                key={index}
+                                className="hover:shadow-md transition-shadow bg-gray-800/80 backdrop-blur-sm"
+                            >
+                                <CardContent className="p-6">
+                                    <div className="flex flex-col gap-3">
+                                        <div className="flex-1">
+                                            <h3 className="text-lg font-semibold text-white mb-2">
+                                                {result.title}
+                                            </h3>
+                                            <p className="text-gray-300 mb-4">{result.snippet}</p>
+                                            <div className="flex gap-3">
+                                                <Button
+                                                    variant="outline_color"
+                                                    size="sm"
+                                                    onClick={() => window.open(result.link, "_blank")}
+                                                    className="flex items-center gap-2"
+                                                >
+                                                    View Original
+                                                </Button>
+                                                <Button
+                                                    variant="outline_color"
+                                                    size="sm"
+                                                    onClick={() => handleAnalyzeArticle(result.link)}
+                                                    className="flex items-center gap-2"
+                                                    disabled={isAnalyzing}
+                                                >
+                                                    <Loader2
+                                                        className={`h-4 w-4 ${
+                                                            isAnalyzing ? "animate-spin" : "hidden"
+                                                        }`}
+                                                    />
+                                                    Analyze Article
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
