@@ -29,18 +29,19 @@ jobs:
           token_format: "access_token"
           create_credentials_file: true
 
-      # - name: Get Secrets
-      #   id: secrets
-      #   run: |
-      #     echo "FIREBASE_TOKEN=$(gcloud secrets versions access latest --secret=firebase-token)" >> $GITHUB_ENV
-      #     echo "GCP_REGION=$(gcloud secrets versions access latest --secret=gcp-region)" >> $GITHUB_ENV
-      #     echo "GCP_PROJECT_ID=$(gcloud secrets versions access latest --secret=gcp-project-id)" >> $GITHUB_ENV
-
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           install_components: "docker-credential-gcr"
+
+      # Set up Redis secrets and configuration
+      - name: Configure Redis
+        run: |
+          echo "REDIS_HOST=${{ secrets.REDIS_HOST }}" >> backend/.env
+          echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> backend/.env
+          echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> backend/.env
+          echo "REDIS_USERNAME=${{ secrets.REDIS_USERNAME }}" >> backend/.env
 
       - name: Configure Docker for Artifact Registry
         run: |
@@ -57,7 +58,13 @@ jobs:
           service: summarizer-backend
           region: ${{ secrets.GCP_REGION }}
           image: ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/summarizer/backend:${{ github.sha }}
-          flags: --port=8000 --cpu=2 --memory=4Gi --allow-unauthenticated
+          flags: >-
+            --port=8000
+            --cpu=2
+            --memory=4Gi
+            --allow-unauthenticated
+            --set-env-vars=REDIS_HOST=${{ secrets.REDIS_HOST }},REDIS_PORT=${{ secrets.REDIS_PORT }},REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }},REDIS_USERNAME=${{ secrets.REDIS_USERNAME }},FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
+            --set-secrets=FIREBASE_PRIVATE_KEY=firebase-private-key:latest
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
