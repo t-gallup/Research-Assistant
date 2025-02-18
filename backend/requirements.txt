@@ -1,42 +1,43 @@
 # Core dependencies
-fastapi==0.109.2
-uvicorn==0.27.1
-pydantic==2.7.4
-pydantic-core==2.18.2
-pydantic-settings==2.1.0
+fastapi
+uvicorn
+pydantic
+pydantic-settings
 
 # Rate limiting and authentication
-redis==5.0.1
-fastapi-limiter==0.1.5
-python-jose[cryptography]==3.3.0
-python-multipart==0.0.6
+redis
+fastapi-limiter
+python-jose[cryptography]
+python-multipart
 
 # LangChain and related
-langchain==0.3.13
-langchain-core==0.3.31
-langchain-openai==0.3.2
-langchain-text-splitters==0.3.4
-langsmith==0.1.17
+langchain
+langchain-core
+langchain-openai
+langchain-text-splitters
+langsmith
 
 # ML and AI
-openai==1.58.1
-cohere==5.11.3
-tensorflow==2.18.0
-protobuf==5.28.2
-google-api-python-client==2.118.0
-google-auth-httplib2==0.2.0
-google-auth-oauthlib==1.2.0
+openai
+cohere
+tensorflow
+protobuf
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+google-genai
 
 # Utils
-beautifulsoup4==4.12.3
-requests==2.31.0
-python-dotenv==1.0.1
-httpx==0.27.0
-urllib3==2.2.0
-certifi==2024.2.2
-charset-normalizer==3.3.2
-idna==3.6
+beautifulsoup4
+requests
+python-dotenv
+httpx
+urllib3
+certifi
+charset-normalizer
+idna
+PyPDF2
 
 # Audio processing
-azure-cognitiveservices-speech==1.34.0
-soundfile==0.12.1
+azure-cognitiveservices-speech
+soundfile
