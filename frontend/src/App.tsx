@@ -7,6 +7,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import AuthPage from "./components/Auth/AuthPage";
 import ProtectedRoute from "./components/Auth/ProtectedRoute";
 import Profile from "./pages/Profile";
+import SearchResults from './pages/SearchResults';
 
 initializeApp(firebaseConfig);
 
@@ -33,6 +34,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/search" element={<SearchResults />} />
           </Routes>
         </div>
       </Router>

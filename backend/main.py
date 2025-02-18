@@ -10,6 +10,7 @@ import tts as t
 from rate_limiter import rate_limiter
 from config import load_secrets
 from firebase_auth import init_firebase, verify_firebase_token
+from search_routes import router as search_router
 
 load_secrets()
 
@@ -40,6 +41,8 @@ app.add_middleware(
 )
 
 app.mount("/audio", StaticFiles(directory="audio"), name="audio")
+
+app.include_router(search_router)
 
 os.makedirs("audio", exist_ok=True)
 

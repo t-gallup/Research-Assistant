@@ -1,8 +1,3 @@
-from langchain_community.document_loaders import AsyncHtmlLoader
-from langchain_community.document_transformers import BeautifulSoupTransformer
-from langchain_community.document_loaders import PyPDFLoader
-from transformers import pipeline
-from tempfile import NamedTemporaryFile
 from PyPDF2 import PdfReader
 from io import BytesIO
 import openai
@@ -11,10 +6,7 @@ import os
 import ast
 import requests
 import logging
-from google.cloud import aiplatform
-from google.cloud import storage
 from dotenv import load_dotenv
-import json
 from google import genai
 from google.genai import types
 import httpx

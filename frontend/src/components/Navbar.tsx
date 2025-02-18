@@ -1,9 +1,19 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Menu, Search } from 'lucide-react';
 import UserDropdown from './UserDropdown';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+        navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+};
 
   return (
     <nav className="bg-gray-800/80 backdrop-blur-sm border-b border-gray-700">
@@ -22,7 +32,7 @@ const Navbar = () => {
 
           {/* Desktop navigation */}
           <div className="hidden md:block">
-            <div className="flex items-center space-x-4">
+            {/* <div className="flex items-center space-x-4">
               <a href="#" className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700">
                 Dashboard
               </a>
@@ -32,21 +42,25 @@ const Navbar = () => {
               <a href="#" className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700">
                 Documents
               </a>
-            </div>
+            </div> */}
           </div>
 
           {/* Search and Profile */}
           <div className="flex items-center space-x-4">
-            <div className="hidden md:block relative w-64">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
+            <form onSubmit={handleSearch} className="hidden md:block relative w-64">
+              <div className="hidden md:block relative w-64">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-600 rounded-md leading-5 bg-gray-700/60 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  placeholder="Search for articles"
+                />
               </div>
-              <input
-                type="text"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-600 rounded-md leading-5 bg-gray-700/60 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="Search"
-              />
-            </div>
+            </form>
             <UserDropdown />
           </div>
         </div>
@@ -54,7 +68,7 @@ const Navbar = () => {
         {/* Mobile menu */}
         {isMenuOpen && (
           <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1">
+            {/* <div className="px-2 pt-2 pb-3 space-y-1">
               <a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">
                 Dashboard
               </a>
@@ -64,7 +78,7 @@ const Navbar = () => {
               <a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">
                 Documents
               </a>
-            </div>
+            </div> */}
           </div>
         )}
       </div>

@@ -11,13 +11,6 @@ python-jose[cryptography]
 python-multipart
 firebase-admin
 
-# LangChain and related
-langchain
-langchain-core
-langchain-openai
-langchain-text-splitters
-langsmith
-
 # ML and AI
 openai
 cohere
