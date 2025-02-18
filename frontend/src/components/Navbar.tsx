@@ -8,6 +8,10 @@ const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
+  const handleHomeClick = () => {
+    navigate('/');
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -27,7 +31,11 @@ const Navbar = () => {
             >
               <Menu className="h-6 w-6" />
             </button>
-            <div className="text-xl font-bold ml-2 text-white">Research Assistant</div>
+            <div className="text-xl font-bold ml-2 text-white">
+              <button onClick={handleHomeClick}>
+                Research Assistant
+              </button>
+              </div>
           </div>
 
           {/* Desktop navigation */}
