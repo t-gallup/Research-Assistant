@@ -244,7 +244,7 @@ def summarize_content(url):
 
 def prompt_llm(final_summary):
     prompt = f"""
-    Based on the following content: {final_summary} generate 10-15 questions 
+    Based on the following content: {final_summary} generate 10-15 questions
     that will help readers understand the content better then provide
     informative answers to these questions.
     Only give questions that can be answered from the content of the article.

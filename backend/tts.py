@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 import logging
 from bs4 import BeautifulSoup
 import httpx
+from google import genai
 
 load_dotenv()
 
@@ -86,19 +87,27 @@ class PDFAudioSummarizer:
 
     def summarize_chunk(self, chunk):
         """Generate summary for a single chunk using OpenAI"""
-        client = OpenAI()
+        client = genai.Client()
         try:
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "Create a concise summary \
-                     of the following text, maintaining key information \
-                     and context:"},
-                    {"role": "user", "content": chunk}
-                ],
-                max_tokens=1000
-            )
-            return response.choices[0].message.content
+
+            prompt = "Create a concise summary of the following text, \
+                maintaining key information"
+            response = client.models.generate_content(
+                model="gemini-1.5-flash",
+                contents=[
+                    chunk,
+                    prompt])
+            # response = client.chat.completions.create(
+            #     model="gpt-3.5-turbo",
+            #     messages=[
+            #         {"role": "system", "content": "Create a concise summary \
+            #          of the following text, maintaining key information \
+            #          and context:"},
+            #         {"role": "user", "content": chunk}
+            #     ],
+            #     max_tokens=1000
+            # )
+            return response.text
         except Exception as e:
             logging.error(f"Error summarizing chunk: {str(e)}")
             return ""
@@ -109,7 +118,7 @@ class PDFAudioSummarizer:
         client = OpenAI()
         try:
             response = client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "Create a well-structured \
                     3-5 minute spoken summary from these section summaries. \

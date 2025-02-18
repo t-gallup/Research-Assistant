@@ -20,7 +20,8 @@ const BASE_URL = "http://localhost:8000";
 
 const ResearchAssistant = () => {
   const [url, setUrl] = useState("");
-  const [expandedQuestion, setExpandedQuestion] = useState(null);
+  const [expandedQuestions, setExpandedQuestions] = useState(new Set());
+  const [expandedChunkSummaries, setExpandedChunkSummaries] = useState(new Set());
   const [expandedSection, setExpandedSection] = useState("qna");
   const [data, setData] = useState({
     articleTitle: "",
@@ -31,7 +32,6 @@ const ResearchAssistant = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [audioFile, setAudioFile] = useState<string | null>(null);
-  const [expandedChunkSummary, setExpandedChunkSummary] = useState(null);
   const [chunkSummaries, setChunkSummaries] = useState([]);
 
   const handleSubmit = async (e) => {
@@ -92,25 +92,32 @@ const ResearchAssistant = () => {
           {data.qnaPairs.map((qa, index) => (
             <Card
               key={index}
-              className="w-full min-h-[150px] transition-all duration-200 hover:shadow-md bg-gray-800/80 backdrop-blur-sm"
+              className="w-full transition-all duration-200 hover:shadow-md bg-gray-800/80 backdrop-blur-sm"
             >
               <div
-                onClick={() =>
-                  setExpandedQuestion(expandedQuestion === index ? null : index)
-                }
-                className="flex items-center justify-between p-4 cursor-pointer"
+                onClick={() => {
+                  setExpandedQuestions(prev => {
+                    const newSet = new Set(prev);
+                    if (newSet.has(index)) {
+                      newSet.delete(index);
+                    } else {
+                      newSet.add(index);
+                    }
+                    return newSet;
+                  });
+                }} className="flex justify-between items-center"
               >
-                <h3 className="text-lg font-semibold pr-4 text-white">
+                <h3 className="text-lg font-semibold p-4 text-white">
                   {qa.question}
                 </h3>
-                {expandedQuestion === index ? (
-                  <ChevronUp className="h-5 w-5 flex-shrink-0 text-white" />
+                {expandedQuestions.has(index) ? (
+                  <ChevronUp className="h-5 flex-shrink-0 pr-2 text-white" />
                 ) : (
-                  <ChevronDown className="h-5 w-5 flex-shrink-0 text-white" />
+                  <ChevronDown className="h-5 flex-shrink-0 pr-2 text-white" />
                 )}
               </div>
-              {expandedQuestion === index && (
-                <CardContent className="pt-0 pb-4">
+              {expandedQuestions.has(index) && (
+                <CardContent className="pt-0 pb-4 px-4">
                   <p className="text-gray-300 leading-relaxed text-base">
                     {qa.answer}
                   </p>
@@ -126,7 +133,7 @@ const ResearchAssistant = () => {
       title: "Article Summary",
       icon: BookOpen,
       content: (
-        <Card className="min-h-[150px] bg-gray-800/80 backdrop-blur-sm">
+        <Card className="bg-gray-800/80 backdrop-blur-sm">
           <CardContent className="pt-6">
             <h2 className="text-xl font-bold mb-6 text-white">
               {data.articleTitle}
@@ -150,8 +157,8 @@ const ResearchAssistant = () => {
       title: "Audio Summary",
       icon: Play,
       content: (
-        <Card className="min-h-[150px] bg-gray-800/80 backdrop-blur-sm">
-          <CardContent className="p-4">
+        <Card className="bg-gray-800/80 backdrop-blur-sm">
+          <CardContent className="p-6">
             <h3 className="text-lg font-semibold text-white mb-2">
               Audio Playback
             </h3>
@@ -182,25 +189,33 @@ const ResearchAssistant = () => {
           {chunkSummaries.map((chunk, index) => (
             <Card
               key={index}
-              className="w-full min-h-[150px] transition-all duration-200 hover:shadow-md bg-gray-800/80 backdrop-blur-sm"
+              className="w-full transition-all duration-200 hover:shadow-md bg-gray-800/80 backdrop-blur-sm"
             >
               <div
-                onClick={() =>
-                  setExpandedChunkSummary(expandedChunkSummary === index ? null : index)
-                }
-                className="flex items-center justify-between p-4 cursor-pointer"
+                onClick={() => {
+                  setExpandedChunkSummaries(prev => {
+                    const newSet = new Set(prev);
+                    if (newSet.has(index)) {
+                      newSet.delete(index);
+                    } else {
+                      newSet.add(index);
+                    }
+                    return newSet;
+                  });
+                }}
+                className="flex justify-between items-center"
               >
-                <h3 className="text-lg font-semibold pr-4 text-white">
+                <h3 className="text-lg font-semibold p-4 text-white">
                   Page {chunk.page}
                 </h3>
-                {expandedChunkSummary === index ? (
-                  <ChevronUp className="h-5 w-5 flex-shrink-0 text-white" />
+                {expandedChunkSummaries.has(index) ? (
+                  <ChevronUp className="h-5 pr-2 flex-shrink-0 text-white" />
                 ) : (
-                  <ChevronDown className="h-5 w-5 flex-shrink-0 text-white" />
+                  <ChevronDown className="h-5 pr-2 flex-shrink-0 text-white" />
                 )}
               </div>
-              {expandedChunkSummary === index && (
-                <CardContent className="pt-0 pb-4">
+              {expandedChunkSummaries.has(index) && (
+                <CardContent className="pt-0 pb-6 px-6">
                   <p className="text-gray-300 leading-relaxed text-base">
                     {chunk.summary}
                   </p>
@@ -222,7 +237,7 @@ const ResearchAssistant = () => {
               key={index}
               className="hover:shadow-md transition-shadow bg-gray-800/80 backdrop-blur-sm"
             >
-              <CardContent className="p-4">
+              <CardContent className="p-6">
                 <div className="flex flex-col gap-3">
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-white mb-2">
@@ -230,24 +245,24 @@ const ResearchAssistant = () => {
                     </h3>
                     <div className="flex gap-3">
                       <Button
-                        variant="outline"
+                        variant="outline_color"
                         size="sm"
                         onClick={() => {
                           window.open(article.link, "_blank");
                         }}
-                        className="flex items-center gap-2 text-white border-gray-600 hover:bg-gray-700"
+                        className="flex items-center gap-2"
                       >
                         View Original
                       </Button>
                       <Button
-                        variant="outline"
+                        variant="outline_color"
                         size="sm"
                         onClick={() => {
                           setUrl(article.link);
                           setExpandedSection("qna");
                           handleSubmit(new Event("submit") as any);
                         }}
-                        className="flex items-center gap-2 text-white border-gray-600 hover:bg-gray-700"
+                        className="flex items-center gap-2"
                       >
                         <Loader2
                           className={`h-4 w-4 ${
@@ -270,7 +285,7 @@ const ResearchAssistant = () => {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <div className="w-full max-w-4xl mx-auto p-4 space-y-6">
+      <div className="w-full max-w-4xl mx-auto p-6 space-y-6">
         <Card className="w-full bg-gray-800/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-2xl font-bold text-white">
@@ -291,10 +306,10 @@ const ResearchAssistant = () => {
                 />
               </div>
               <Button
-                variant="outline"
+                variant="outline_color"
                 type="submit"
                 disabled={isLoading || !url}
-                className="text-white border-gray-600 hover:bg-gray-700"
+                className=""
               >
                 {isLoading ? (
                   <>
@@ -326,7 +341,7 @@ const ResearchAssistant = () => {
                 <Button
                   key={section.id}
                   variant={
-                    expandedSection === section.id ? "default" : "outline"
+                    expandedSection === section.id ? "section_default" : "section"
                   }
                   onClick={() => setExpandedSection(section.id)}
                   className={`flex items-center gap-2 text-base font-medium ${
@@ -340,7 +355,7 @@ const ResearchAssistant = () => {
                 </Button>
               ))}
             </div>
-            <div className="min-h-[200px]">
+            <div className="min-h-[75px]">
               {sections.find((s) => s.id === expandedSection)?.content}
             </div>
           </div>
