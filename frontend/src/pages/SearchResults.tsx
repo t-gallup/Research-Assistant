@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/Card";
 import { Button } from "../components/Button";
 import Navbar from '../components/Navbar';
 import { Loader2 } from "lucide-react";
@@ -50,8 +50,8 @@ const SearchResults = () => {
 
     const handleAnalyzeArticle = (url: string) => {
         setIsAnalyzing(true);
-        // Navigate to home page with the URL
-        navigate('/?url=' + encodeURIComponent(url));
+        // Navigate to home page with the URL and autoAnalyze flag
+        navigate(`/?url=${encodeURIComponent(url)}&autoAnalyze=true`);
     };
 
     if (isLoading) {
