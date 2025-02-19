@@ -193,7 +193,6 @@ logger = logging.getLogger(__name__)
 #             logger.exception("Local summarization failed:")
 #             raise RuntimeError(f"Summarization failed: {str(inner_e)}")
 def summarize_content(url):
-    logger.debug("URL: ", url)
     client = genai.Client()
     doc_data = httpx.get(url)
     content_type = doc_data.headers.get('Content-Type', '')

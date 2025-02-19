@@ -37,7 +37,7 @@ export const generateQnA = async (url: string): Promise<QnAResponse> => {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to generate Q&A');
+    throw new Error('Failed to generate content');
   }
 
   return response.json();

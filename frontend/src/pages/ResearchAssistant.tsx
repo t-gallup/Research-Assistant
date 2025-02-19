@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/Card";
 import { Input } from "../components/Input";
 import { Button } from "../components/Button";
@@ -42,15 +42,7 @@ const ResearchAssistant = () => {
   const urlParam = queryParams.get('url');
   const autoAnalyze = queryParams.get('autoAnalyze');
 
-  useEffect(() => {
-    // If URL and autoAnalyze are present in parameters, trigger analysis
-    if (urlParam && autoAnalyze === 'true') {
-      setUrl(urlParam);
-      handleSubmit(new Event('submit') as any);
-    }
-  }, [urlParam, autoAnalyze]);
-
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
@@ -82,7 +74,7 @@ const ResearchAssistant = () => {
         } else if (qnaResponse.status === 429) {
             setError("Rate limit exceeded. Please try again later.");
         } else {
-            throw new Error("Failed to generate content");
+            setError("Failed to generate content");
         }
         return;
       }
@@ -105,7 +97,7 @@ const ResearchAssistant = () => {
         } else if (audioResponse.status === 429) {
             setError("Rate limit exceeded. Please try again later.");
         } else {
-            throw new Error("Failed to generate content");
+            setError("Failed to generate content");
         }
         return;
       }
@@ -123,7 +115,18 @@ const ResearchAssistant = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [url]);
+  
+  useEffect(() => {
+    // If URL and autoAnalyze are present in parameters, trigger analysis
+    if (urlParam && autoAnalyze === 'true') {
+      console.log('URL from params:', urlParam);
+      setUrl(urlParam);
+      setTimeout(() => {
+        handleSubmit(new Event('submit') as any);
+      }, 0);
+    }
+  }, [urlParam, autoAnalyze, handleSubmit]);
 
   const sections = [
     {
