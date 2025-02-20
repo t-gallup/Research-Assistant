@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getAuth } from 'firebase/auth';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '../components/Alert';
 
 const UsagePage = () => {
   const [usageData, setUsageData] = useState([]);
