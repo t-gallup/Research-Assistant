@@ -44,10 +44,10 @@ class RateLimiter:
         
         return max_requests - current_requests
 
-    async def check_rate_limit(self, request: Request, token: dict):
+    async def check_rate_limit(self, request: Request, token: dict, is_internal: bool = False):
         """Middleware to check rate limits."""
-        # Skip rate limiting for OPTIONS requests
-        if request.method == "OPTIONS":
+        # Skip rate limiting for OPTIONS requests and internal API calls
+        if request.method == "OPTIONS" or is_internal:
             return
             
         user_id = token.get('uid')
