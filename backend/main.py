@@ -97,25 +97,30 @@ async def get_usage_stats(request: Request,
     try:
         user_id = token.get('uid')
         logger.debug(f"Fetching usage stats for user: {user_id}")
-        
-        # Get usage data from rate limiter
-        remaining = await rate_limiter.get_remaining_requests(user_id)
-        tier = await rate_limiter.get_user_tier(user_id)
-        limit = rate_limiter.rate_limit_tiers[tier]
-        used = limit - remaining
 
-        # Get daily usage history
-        daily_usage = await rate_limiter.get_daily_usage(user_id)
-        
-        response_data = {
-            "total_limit": limit,
-            "used_requests": used,
-            "remaining_requests": remaining,
-            "daily_usage": daily_usage,
-            "tier": tier
-        }
-        logger.debug(f"Returning usage stats: {response_data}")
-        return JSONResponse(content=response_data)
+        if request.method != "OPTIONS":  # Skip check for OPTIONS requests
+            # Get daily usage history
+            daily_usage = await rate_limiter.get_daily_usage(user_id)
+            
+            # Get tier and limit info without incrementing
+            tier = await rate_limiter.get_user_tier(user_id)
+            limit = rate_limiter.rate_limit_tiers[tier]
+
+            # Get current counts without incrementing
+            today = datetime.now().strftime('%Y-%m-%d')
+            requests_key = f"user:{user_id}:requests:{today}"
+            current_requests = int(await rate_limiter.redis.get(requests_key) or 0)
+            remaining = limit - current_requests
+            
+            response_data = {
+                "total_limit": limit,
+                "used_requests": current_requests,
+                "remaining_requests": remaining,
+                "daily_usage": daily_usage,
+                "tier": tier
+            }
+            logger.debug(f"Returning usage stats: {response_data}")
+            return JSONResponse(content=response_data)
     except Exception as e:
         logger.error(f"Error in get_usage_stats: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
