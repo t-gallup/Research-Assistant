@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, LineChart } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 
@@ -46,6 +46,11 @@ const UserDropdown = () => {
 
   const handleProfileClick = () => {
     navigate('/profile');
+    setIsOpen(false);
+  };
+
+  const handleUsageClick = () => {
+    navigate('/usage');
     setIsOpen(false);
   };
 
@@ -107,6 +112,13 @@ const UserDropdown = () => {
             >
               <User className="w-4 h-4" />
               <span>Your profile</span>
+            </button>
+            <button
+              onClick={handleUsageClick}
+              className="w-full px-4 py-2 text-left text-gray-300 hover:bg-gray-700 flex items-center space-x-2"
+            >
+              <LineChart className="w-4 h-4" />
+              <span>Usage Dashboard</span>
             </button>
           </div>
 
