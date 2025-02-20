@@ -1,42 +1,97 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { getAuth } from 'firebase/auth';
 
 const UsagePage = () => {
-  // In a real implementation, this would come from your backend
-  const [usageData, setUsageData] = useState([
-    { date: '2024-02-14', requests: 150 },
-    { date: '2024-02-15', requests: 230 },
-    { date: '2024-02-16', requests: 180 },
-    { date: '2024-02-17', requests: 290 },
-    { date: '2024-02-18', requests: 320 },
-    { date: '2024-02-19', requests: 270 },
-    { date: '2024-02-20', requests: 200 },
-  ]);
-
+  const [usageData, setUsageData] = useState([]);
   const [quotaInfo, setQuotaInfo] = useState({
-    totalRequests: 10000,
-    usedRequests: 1640,
-    remainingRequests: 8360,
+    total_limit: 0,
+    used_requests: 0,
+    remaining_requests: 0,
+    tier: ''
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUsageData = async () => {
+      try {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        
+        if (!user) {
+          throw new Error('No user logged in');
+        }
+
+        const idToken = await user.getIdToken();
+        const response = await fetch('/api/usage/stats', {
+          headers: {
+            'Authorization': `Bearer ${idToken}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch usage data');
+        }
+
+        const data = await response.json();
+        setUsageData(data.daily_usage);
+        setQuotaInfo({
+          total_limit: data.total_limit,
+          used_requests: data.used_requests,
+          remaining_requests: data.remaining_requests,
+          tier: data.tier
+        });
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsageData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-gray-300">Loading usage data...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-red-500">Error: {error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6 text-gray-300">API Usage Dashboard</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-300">API Usage Dashboard</h1>
+        <div className="text-orange-500">
+          Current Tier: {quotaInfo.tier}
+        </div>
+      </div>
       
       <div className="grid gap-6 grid-cols-1 md:grid-cols-3 mb-6">
         <div className="bg-gray-800 rounded-lg p-6">
-          <h2 className="text-gray-400 text-lg mb-2">Total Requests</h2>
-          <p className="text-3xl font-bold text-gray-200">{quotaInfo.totalRequests.toLocaleString()}</p>
+          <h2 className="text-gray-400 text-lg mb-2">Total Limit</h2>
+          <p className="text-3xl font-bold text-gray-200">{quotaInfo.total_limit.toLocaleString()}</p>
         </div>
 
         <div className="bg-gray-800 rounded-lg p-6">
           <h2 className="text-gray-400 text-lg mb-2">Used Requests</h2>
-          <p className="text-3xl font-bold text-gray-200">{quotaInfo.usedRequests.toLocaleString()}</p>
+          <p className="text-3xl font-bold text-gray-200">{quotaInfo.used_requests.toLocaleString()}</p>
         </div>
 
         <div className="bg-gray-800 rounded-lg p-6">
           <h2 className="text-gray-400 text-lg mb-2">Remaining Requests</h2>
-          <p className="text-3xl font-bold text-gray-200">{quotaInfo.remainingRequests.toLocaleString()}</p>
+          <p className="text-3xl font-bold text-gray-200">{quotaInfo.remaining_requests.toLocaleString()}</p>
+          <p className="text-sm text-gray-400 mt-2">Resets daily</p>
         </div>
       </div>
 
