@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/Card";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
 import { Button } from "../components/Button";
 import Navbar from '../components/Navbar';
 import { Loader2 } from "lucide-react";
+import { getAuth } from 'firebase/auth';
 
 interface SearchResult {
     title: string;
@@ -16,6 +17,7 @@ const SearchResults = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const auth = getAuth()
     
     const navigate = useNavigate();
     
@@ -48,8 +50,25 @@ const SearchResults = () => {
         fetchResults();
     }, [searchQuery]);
 
-    const handleAnalyzeArticle = (url: string) => {
+    const handleAnalyzeArticle = async (url: string) => {
         setIsAnalyzing(true);
+
+        const user = auth.currentUser;
+        if (!user) {
+            console.error("User not authenticated");
+            return;
+        }
+        try {
+            const idToken = await user.getIdToken();
+            // Store the token or pass it along with the navigation
+            // You might want to store this in localStorage or context
+            localStorage.setItem('authToken', idToken);
+            
+            navigate(`/?url=${encodeURIComponent(url)}&autoAnalyze=true`);
+        } catch (error) {
+            console.error("Error getting auth token:", error);
+            setIsAnalyzing(false);
+        }
         // Navigate to home page with the URL and autoAnalyze flag
         navigate(`/?url=${encodeURIComponent(url)}&autoAnalyze=true`);
     };

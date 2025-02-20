@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { LogOut, User } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 
 const UserDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -50,7 +51,7 @@ const UserDropdown = () => {
   };
 
   return (
-    <div className="relative" ref={dropdownRef} style={{ zIndex: 100 }}>
+    <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-orange-500"
@@ -68,50 +69,70 @@ const UserDropdown = () => {
         )}
       </button>
 
-      {isOpen && (
-        <div className="fixed mt-2 w-64 bg-gray-800 rounded-lg shadow-lg py-2" style={{ right: '1rem', top: '3.5rem' }}>
-          <div className="px-4 py-2 flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-orange-500">
-              {getGooglePhotoUrl() ? (
-                <img 
-                  src={getGooglePhotoUrl()} 
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="text-white text-xl font-semibold">
-                  {user?.displayName?.charAt(0)?.toUpperCase() || 'U'}
-                </span>
-              )}
-            </div>
-            <div>
-              <div className="text-white text-lg font-semibold">
-                {user?.displayName || 'User'}
+      {isOpen && createPortal(
+        <>
+          {/* Overlay */}
+          <div 
+            className="fixed inset-0"
+            style={{ zIndex: 999 }}
+          />
+            <div 
+              className="fixed inset-0 bg-transparent"
+              onClick={() => setIsOpen(false)}
+            />
+            {/* Dropdown Menu */}
+            <div 
+              className="fixed mt-2 w-64 bg-gray-800 rounded-lg shadow-lg py-2"
+              style={{ 
+                right: '1rem', 
+                top: '3.5rem',
+                pointerEvents: 'auto'
+              }}
+            >
+              <div className="px-4 py-2 flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-orange-500">
+                  {getGooglePhotoUrl() ? (
+                    <img 
+                      src={getGooglePhotoUrl()} 
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-white text-xl font-semibold">
+                      {user?.displayName?.charAt(0)?.toUpperCase() || 'U'}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <div className="text-white text-lg font-semibold">
+                    {user?.displayName || 'User'}
+                  </div>
+                  <div className="text-gray-400 text-sm">{user?.email}</div>
+                </div>
               </div>
-              <div className="text-gray-400 text-sm">{user?.email}</div>
+
+              <div className="border-t border-gray-700">
+                <button
+                  onClick={handleProfileClick}
+                  className="w-full px-4 py-2 text-left text-gray-300 hover:bg-gray-700 flex items-center space-x-2"
+                >
+                  <User className="w-4 h-4" />
+                  <span>Your profile</span>
+                </button>
+            </div>
+
+            <div className="border-t border-gray-700">
+              <button
+                onClick={handleLogout}
+                className="w-full px-4 py-2 text-left text-gray-300 hover:bg-gray-700 flex items-center space-x-2"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Log out</span>
+              </button>
             </div>
           </div>
-
-          <div className="border-t border-gray-700">
-            <button
-              onClick={handleProfileClick}
-              className="w-full px-4 py-2 text-left text-gray-300 hover:bg-gray-700 flex items-center space-x-2"
-            >
-              <User className="w-4 h-4" />
-              <span>Your profile</span>
-            </button>
-          </div>
-
-          <div className="border-t border-gray-700">
-            <button
-              onClick={handleLogout}
-              className="w-full px-4 py-2 text-left text-gray-300 hover:bg-gray-700 flex items-center space-x-2"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Log out</span>
-            </button>
-          </div>
-        </div>
+        </>,
+        document.body
       )}
     </div>
   );

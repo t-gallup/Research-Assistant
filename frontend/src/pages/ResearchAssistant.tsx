@@ -118,15 +118,91 @@ const ResearchAssistant = () => {
   }, [url]);
   
   useEffect(() => {
-    // If URL and autoAnalyze are present in parameters, trigger analysis
     if (urlParam && autoAnalyze === 'true') {
-      console.log('URL from params:', urlParam);
-      setUrl(urlParam);
-      setTimeout(() => {
-        handleSubmit(new Event('submit') as any);
-      }, 0);
+        setUrl(urlParam);
+        
+        const autoSubmit = async () => {
+            setError(null);
+            setIsLoading(true);
+
+            try {
+                const auth = getAuth();
+                const user = auth.currentUser;
+
+                if (!user) {
+                    setError("Please sign in to continue");
+                    setIsLoading(false);
+                    return;
+                }
+
+                const token = await user.getIdToken();
+
+                // QNA Generation
+                const qnaResponse = await fetch(`${BASE_URL}/api/generate-qna`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ url: urlParam }),
+                });
+
+                if (!qnaResponse.ok) {
+                    if (qnaResponse.status === 401) {
+                        setError("Authentication failed. Please sign in again.");
+                    } else if (qnaResponse.status === 429) {
+                        setError("Rate limit exceeded. Please try again later.");
+                    } else {
+                        setError("Failed to generate content");
+                    }
+                    setIsLoading(false);
+                    return;
+                }
+
+                const responseData = await qnaResponse.json();
+                setData(responseData);
+
+                // Audio Generation
+                const audioResponse = await fetch(`${BASE_URL}/api/generate-audio`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ url: urlParam }),
+                });
+
+                if (!audioResponse.ok) {
+                    if (audioResponse.status === 401) {
+                        setError("Authentication failed. Please sign in again.");
+                    } else if (audioResponse.status === 429) {
+                        setError("Rate limit exceeded. Please try again later.");
+                    } else {
+                        setError("Failed to generate audio content");
+                    }
+                    setIsLoading(false);
+                    return;
+                }
+
+                const audioData = await audioResponse.json();
+                if (audioData.audio_file) {
+                    setAudioFile(audioData.audio_file);
+                }
+                if (audioData.chunk_summaries) {
+                    setChunkSummaries(audioData.chunk_summaries);
+                }
+
+            } catch (err) {
+                setError(err.message);
+                console.error("Error:", err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        autoSubmit();
     }
-  }, [urlParam, autoAnalyze, handleSubmit]);
+}, [urlParam, autoAnalyze]); // Only depend on these values
 
   const sections = [
     {
