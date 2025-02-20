@@ -104,21 +104,8 @@ async def get_usage_stats(request: Request,
         limit = rate_limiter.rate_limit_tiers[tier]
         used = limit - remaining
 
-        # Get daily usage for the past 30 days from Redis
-        daily_usage = []
-        today = datetime.now()
-        
-        for i in range(30):
-            date = (today - timedelta(days=i)).strftime("%Y-%m-%d")
-            count = await rate_limiter.redis.get(f"user:{user_id}:usage:{date}")
-            if count:
-                daily_usage.append({
-                    "date": date,
-                    "requests": int(count)
-                })
-        
-        # Sort by date ascending
-        daily_usage.sort(key=lambda x: x["date"])
+        # Get daily usage history
+        daily_usage = await rate_limiter.get_daily_usage(user_id)
         
         response_data = {
             "total_limit": limit,
@@ -130,7 +117,7 @@ async def get_usage_stats(request: Request,
         logger.debug(f"Returning usage stats: {response_data}")
         return JSONResponse(content=response_data)
     except Exception as e:
-        logger.error(f"Error in get_usage_stats: {str(e)}")
+        logger.error(f"Error in get_usage_stats: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
