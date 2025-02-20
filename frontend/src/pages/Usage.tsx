@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getAuth } from 'firebase/auth';
-import { Alert, AlertDescription } from '../components/Alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const UsagePage = () => {
   const [usageData, setUsageData] = useState([]);
@@ -28,7 +28,8 @@ const UsagePage = () => {
         }
 
         const idToken = await user.getIdToken();
-        const response = await fetch('/api/usage/stats', {
+        console.log('Fetching usage data...');
+        const response = await fetch(`${process.env.REACT_APP_API_URL || ''}/api/usage/stats`, {
           headers: {
             'Authorization': `Bearer ${idToken}`,
             'Accept': 'application/json'
@@ -47,6 +48,7 @@ const UsagePage = () => {
         }
 
         const data = await response.json();
+        console.log('Received usage data:', data);
         setUsageData(data.daily_usage || []);
         setQuotaInfo({
           total_limit: data.total_limit || 0,
