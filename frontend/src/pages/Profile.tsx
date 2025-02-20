@@ -9,7 +9,7 @@ const Profile = () => {
   const user = auth.currentUser;
   const navigate = useNavigate();
   const [name, setName] = useState(user?.displayName || '');
-  const [email, _] = useState(user?.email || '');
+  const [email] = useState(user?.email || '');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
