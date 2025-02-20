@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import rag_pipeline as rp
 import logging
@@ -50,69 +51,79 @@ os.makedirs("audio", exist_ok=True)
 
 @app.middleware("http")
 async def debug_middleware(request: Request, call_next):
-    print("Auth header:", request.headers.get("Authorization"))
+    logger.debug(f"Incoming request: {request.method} {request.url}")
+    logger.debug("Auth header: %s", request.headers.get("Authorization"))
     response = await call_next(request)
     return response
 
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    return JSONResponse(content={"status": "healthy"})
 
 
 @app.get("/api/rate-limit")
 async def get_rate_limit(request: Request,
                          token: dict = Depends(verify_firebase_token)
                          ):
-    user_id = token.get('uid')
-    remaining = rate_limiter.get_remaining_requests(user_id)
-    tier = rate_limiter.get_user_tier(user_id)
-    limit = rate_limiter.rate_limit_tiers[tier]
-    
-    return {
-        "tier": tier,
-        "limit": limit,
-        "remaining": remaining,
-        "reset": "next day"
-    }
+    try:
+        user_id = token.get('uid')
+        remaining = rate_limiter.get_remaining_requests(user_id)
+        tier = rate_limiter.get_user_tier(user_id)
+        limit = rate_limiter.rate_limit_tiers[tier]
+        
+        return JSONResponse(content={
+            "tier": tier,
+            "limit": limit,
+            "remaining": remaining,
+            "reset": "next day"
+        })
+    except Exception as e:
+        logger.error(f"Error in get_rate_limit: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/usage/stats")
 async def get_usage_stats(request: Request,
                          token: dict = Depends(verify_firebase_token)):
     """Get usage statistics for the current user"""
-    user_id = token.get('uid')
-    
-    # Get usage data from rate limiter
-    remaining = rate_limiter.get_remaining_requests(user_id)
-    tier = rate_limiter.get_user_tier(user_id)
-    limit = rate_limiter.rate_limit_tiers[tier]
-    used = limit - remaining
+    try:
+        user_id = token.get('uid')
+        logger.debug(f"Fetching usage stats for user: {user_id}")
+        
+        # Get usage data from rate limiter
+        remaining = rate_limiter.get_remaining_requests(user_id)
+        tier = rate_limiter.get_user_tier(user_id)
+        limit = rate_limiter.rate_limit_tiers[tier]
+        used = limit - remaining
 
-    # Get daily usage for the past 30 days from Redis
-    daily_usage = []
-    today = datetime.now()
-    redis = rate_limiter.redis  # Access Redis from rate_limiter
-    
-    for i in range(30):
-        date = (today - timedelta(days=i)).strftime("%Y-%m-%d")
-        count = await redis.get(f"user:{user_id}:usage:{date}")
-        if count:
-            daily_usage.append({
-                "date": date,
-                "requests": int(count)
-            })
-    
-    # Sort by date ascending
-    daily_usage.sort(key=lambda x: x["date"])
-    
-    return {
-        "total_limit": limit,
-        "used_requests": used,
-        "remaining_requests": remaining,
-        "daily_usage": daily_usage,
-        "tier": tier
-    }
+        # Get daily usage for the past 30 days from Redis
+        daily_usage = []
+        today = datetime.now()
+        redis = rate_limiter.redis  # Access Redis from rate_limiter
+        
+        for i in range(30):
+            date = (today - timedelta(days=i)).strftime("%Y-%m-%d")
+            count = await redis.get(f"user:{user_id}:usage:{date}")
+            if count:
+                daily_usage.append({
+                    "date": date,
+                    "requests": int(count)
+                })
+        
+        # Sort by date ascending
+        daily_usage.sort(key=lambda x: x["date"])
+        
+        return JSONResponse(content={
+            "total_limit": limit,
+            "used_requests": used,
+            "remaining_requests": remaining,
+            "daily_usage": daily_usage,
+            "tier": tier
+        })
+    except Exception as e:
+        logger.error(f"Error in get_usage_stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/generate-qna")
@@ -145,14 +156,14 @@ async def generate_qna(url_input: URLInput,
 
         logger.info("Recommended articles retrieved")
 
-        return {
+        return JSONResponse(content={
             "articleTitle": article_title,
             "summary": initial_summary,
             "qnaPairs": [{"question": q, "answer": a} for q,
                          a in zip(questions, answers)],
             "recommendedArticles": [{"title": t, "link": l} for t,
                                     l in zip(rec_titles, rec_links)]
-        }
+        })
     except Exception as e:
         logger.error(f"Error processing request: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -176,11 +187,11 @@ async def generate_audio(url_input: URLInput,
         result = summarizer.process_file(url_input.url, output_file)
         
         if result["success"]:
-            return {
+            return JSONResponse(content={
                 "status": "success",
                 "audio_file": os.path.basename(output_file),
                 "chunk_summaries": result["chunk_summaries"]
-            }
+            })
         else:
             raise HTTPException(status_code=500, detail="Failed to process file")
 
