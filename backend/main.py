@@ -151,13 +151,25 @@ async def generate_qna(url_input: URLInput,
 
         logger.info("Recommended articles retrieved")
 
+        # Generate audio asynchronously without counting it as a separate request
+        try:
+            audio_request = Request(scope={"type": "http"})
+            audio_result = await generate_audio(url_input, audio_request, token, is_internal=True)
+            has_audio = True
+            audio_data = audio_result
+        except Exception as e:
+            logger.error(f"Error generating audio: {str(e)}")
+            has_audio = False
+            audio_data = None
+
         return JSONResponse(content={
             "articleTitle": article_title,
             "summary": initial_summary,
             "qnaPairs": [{"question": q, "answer": a} for q,
                          a in zip(questions, answers)],
             "recommendedArticles": [{"title": t, "link": l} for t,
-                                    l in zip(rec_titles, rec_links)]
+                                    l in zip(rec_titles, rec_links)],
+            "audio": audio_data if has_audio else None
         })
     except Exception as e:
         logger.error(f"Error processing request: {str(e)}")
@@ -167,10 +179,12 @@ async def generate_qna(url_input: URLInput,
 @app.post("/api/generate-audio")
 async def generate_audio(url_input: URLInput,
                          request: Request,
-                         token: dict = Depends(verify_firebase_token)
+                         token: dict = Depends(verify_firebase_token),
+                         is_internal: bool = False
                          ):
-    # Check rate limit
-    await rate_limiter.check_rate_limit(request, token)
+    # Check rate limit only if not an internal request
+    if not is_internal:
+        await rate_limiter.check_rate_limit(request, token)
     
     try:
         summarizer = t.PDFAudioSummarizer(
@@ -182,11 +196,11 @@ async def generate_audio(url_input: URLInput,
         result = summarizer.process_file(url_input.url, output_file)
         
         if result["success"]:
-            return JSONResponse(content={
+            return {
                 "status": "success",
                 "audio_file": os.path.basename(output_file),
                 "chunk_summaries": result["chunk_summaries"]
-            })
+            }
         else:
             raise HTTPException(status_code=500, detail="Failed to process file")
 
