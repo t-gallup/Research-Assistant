@@ -1,8 +1,10 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request, Depends
 from typing import List
 from pydantic import BaseModel
 import os
 import aiohttp
+from firebase_auth import verify_firebase_token
+from rate_limiter import rate_limiter
 
 router = APIRouter()
 
@@ -18,8 +20,15 @@ class SearchResponse(BaseModel):
 
 
 @router.get("/api/search", response_model=SearchResponse)
-async def search(q: str = Query(..., min_length=1)):
+async def search(q: str = Query(..., min_length=1),
+                request: Request = None,
+                token: dict = Depends(verify_firebase_token),
+                is_internal: bool = True):
     try:
+        # Only check rate limit if this is an external request
+        if not is_internal and request:
+            await rate_limiter.check_rate_limit(request, token, is_internal=False)
+
         GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
         SEARCH_ENGINE_ID = os.getenv("SEARCH_ENGINE_ID")
         
