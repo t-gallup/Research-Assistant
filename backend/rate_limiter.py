@@ -33,6 +33,7 @@ class RateLimiter:
         """Get remaining requests for the user."""
         today = datetime.now().strftime('%Y-%m-%d')
         requests_key = f"user:{user_id}:requests:{today}"
+        usage_key = f"user:{user_id}:usage:{today}"
         
         # Get current request count
         current_requests = int(await self.redis.get(requests_key) or 0)
@@ -45,10 +46,14 @@ class RateLimiter:
 
     async def check_rate_limit(self, request: Request, token: dict):
         """Middleware to check rate limits."""
+        # Skip rate limiting for OPTIONS requests
+        if request.method == "OPTIONS":
+            return
+            
         user_id = token.get('uid')
-        
         today = datetime.now().strftime('%Y-%m-%d')
         requests_key = f"user:{user_id}:requests:{today}"
+        usage_key = f"user:{user_id}:usage:{today}"
         
         # Get current request count
         current_requests = int(await self.redis.get(requests_key) or 0)
@@ -68,11 +73,30 @@ class RateLimiter:
                 }
             )
         
-        # Increment request count
+        # Increment request count and daily usage
         await self.redis.incr(requests_key)
+        await self.redis.incr(usage_key)
         
-        # Set expiry for request counter (48 hours to be safe)
+        # Set expiry for counters (48 hours to be safe)
         await self.redis.expire(requests_key, 60 * 60 * 48)
+        await self.redis.expire(usage_key, 60 * 60 * 48)
+
+    async def get_daily_usage(self, user_id: str, days: int = 30) -> list:
+        """Get daily usage for the past N days."""
+        daily_usage = []
+        today = datetime.now()
+        
+        for i in range(days):
+            date = (today - timedelta(days=i)).strftime("%Y-%m-%d")
+            usage_key = f"user:{user_id}:usage:{date}"
+            count = await self.redis.get(usage_key)
+            if count:
+                daily_usage.append({
+                    "date": date,
+                    "requests": int(count)
+                })
+        
+        return sorted(daily_usage, key=lambda x: x["date"])
 
     async def set_user_tier(self, user_id: str, tier: str):
         """Set a user's subscription tier."""
