@@ -11,6 +11,7 @@ from rate_limiter import rate_limiter
 from config import load_secrets
 from firebase_auth import init_firebase, verify_firebase_token
 from search_routes import router as search_router
+from datetime import datetime, timedelta
 
 load_secrets()
 
@@ -73,6 +74,44 @@ async def get_rate_limit(request: Request,
         "limit": limit,
         "remaining": remaining,
         "reset": "next day"
+    }
+
+
+@app.get("/api/usage/stats")
+async def get_usage_stats(request: Request,
+                         token: dict = Depends(verify_firebase_token)):
+    """Get usage statistics for the current user"""
+    user_id = token.get('uid')
+    
+    # Get usage data from rate limiter
+    remaining = rate_limiter.get_remaining_requests(user_id)
+    tier = rate_limiter.get_user_tier(user_id)
+    limit = rate_limiter.rate_limit_tiers[tier]
+    used = limit - remaining
+
+    # Get daily usage for the past 30 days from Redis
+    daily_usage = []
+    today = datetime.now()
+    redis = rate_limiter.redis  # Access Redis from rate_limiter
+    
+    for i in range(30):
+        date = (today - timedelta(days=i)).strftime("%Y-%m-%d")
+        count = await redis.get(f"user:{user_id}:usage:{date}")
+        if count:
+            daily_usage.append({
+                "date": date,
+                "requests": int(count)
+            })
+    
+    # Sort by date ascending
+    daily_usage.sort(key=lambda x: x["date"])
+    
+    return {
+        "total_limit": limit,
+        "used_requests": used,
+        "remaining_requests": remaining,
+        "daily_usage": daily_usage,
+        "tier": tier
     }
 
 
