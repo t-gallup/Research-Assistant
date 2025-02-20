@@ -15,15 +15,14 @@ const Navbar = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-        navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     }
-};
+  };
 
   return (
-    <nav className="bg-gray-800/80 backdrop-blur-sm border-b border-gray-700">
+    <nav className="bg-gray-800/80 backdrop-blur-sm border-b border-gray-700" style={{ position: 'relative', zIndex: 50 }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo and hamburger menu */}
           <div className="flex items-center">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -35,26 +34,14 @@ const Navbar = () => {
               <button onClick={handleHomeClick}>
                 Research Assistant
               </button>
-              </div>
+            </div>
           </div>
 
-          {/* Desktop navigation */}
           <div className="hidden md:block">
-            {/* <div className="flex items-center space-x-4">
-              <a href="#" className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700">
-                Dashboard
-              </a>
-              <a href="#" className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700">
-                Projects
-              </a>
-              <a href="#" className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700">
-                Documents
-              </a>
-            </div> */}
+            {/* Desktop navigation links */}
           </div>
 
-          {/* Search and Profile */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4" style={{ position: 'relative', zIndex: 1000 }}>
             <form onSubmit={handleSearch} className="hidden md:block relative w-64">
               <div className="hidden md:block relative w-64">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -73,20 +60,9 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Mobile menu */}
         {isMenuOpen && (
           <div className="md:hidden">
-            {/* <div className="px-2 pt-2 pb-3 space-y-1">
-              <a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">
-                Dashboard
-              </a>
-              <a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">
-                Projects
-              </a>
-              <a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">
-                Documents
-              </a>
-            </div> */}
+            {/* Mobile menu */}
           </div>
         )}
       </div>
