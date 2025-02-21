@@ -63,7 +63,7 @@ jobs:
             --cpu=2
             --memory=4Gi
             --allow-unauthenticated
-            --set-env-vars=REDIS_HOST=${{ secrets.REDIS_HOST }},REDIS_PORT=${{ secrets.REDIS_PORT }},REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }},REDIS_USERNAME=${{ secrets.REDIS_USERNAME }},FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }},STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}, STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }}, STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }}
+            --set-env-vars=REDIS_HOST=${{ secrets.REDIS_HOST }},REDIS_PORT=${{ secrets.REDIS_PORT }},REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }},REDIS_USERNAME=${{ secrets.REDIS_USERNAME }},FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }},STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }},STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }},STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }}
             --set-secrets=FIREBASE_PRIVATE_KEY=firebase-private-key:latest
 
       - name: Setup Node.js
