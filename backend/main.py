@@ -125,6 +125,9 @@ async def get_usage_stats(request: Request,
         logger.error(f"Error in get_usage_stats: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/upgrade")
+async def upgrade_plan()
+
 
 @app.post("/api/generate-qna")
 async def generate_qna(url_input: URLInput,
