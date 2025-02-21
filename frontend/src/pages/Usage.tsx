@@ -3,6 +3,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { getAuth } from 'firebase/auth';
 import { Alert, AlertDescription } from '../components/Alert';
 import Navbar from '../components/Navbar';
+import { parseISO, format } from 'date-fns';
 
 const UsagePage = () => {
   const [usageData, setUsageData] = useState([]);
@@ -151,12 +152,12 @@ const UsagePage = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis 
                     dataKey="date" 
-                    tickFormatter={(date) => new Date(date).toLocaleDateString()}
+                    tickFormatter={(date) => format(parseISO(date), 'MM/dd/yyyy')}
                     stroke="#9CA3AF"
                   />
                   <YAxis stroke="#9CA3AF" />
                   <Tooltip 
-                    labelFormatter={(date) => new Date(date).toLocaleDateString()}
+                    labelFormatter={(date) => format(parseISO(date), 'MM/dd/yyyy')}
                     formatter={(value) => [value, 'Requests']}
                     contentStyle={{
                       backgroundColor: '#1F2937',
