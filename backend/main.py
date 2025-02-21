@@ -25,7 +25,7 @@ stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 # Price IDs for different tiers
 PRICE_IDS = {
     'pro': os.getenv('STRIPE_PRO_PRICE_ID'),
-    'enterprise': os.getenv('STRIPE_ENTERPRISE_PRICE_ID')
+    'plus': os.getenv('STRIPE_PLUS_PRICE_ID')
 }
 
 # Set up logging
@@ -50,8 +50,7 @@ app = FastAPI()
 
 # Configure CORS
 origins = [
-    "http://localhost:3000",  # React development server
-    "http://localhost:5173",  # Vite development server
+    "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5173",
 ]
@@ -180,7 +179,7 @@ async def upgrade_plan(
             )
 
             # Update user's tier in rate limiter
-            new_tier = 'pro' if upgrade_request.price_id == PRICE_IDS['pro'] else 'enterprise'
+            new_tier = 'pro' if upgrade_request.price_id == PRICE_IDS['pro'] else 'plus'
             await rate_limiter.set_user_tier(user_id, new_tier)
             
             return {
@@ -233,8 +232,8 @@ async def stripe_webhook(request: Request):
                     # Determine tier from price ID
                     if subscription.items.data[0].price.id == PRICE_IDS['pro']:
                         await rate_limiter.set_user_tier(user_id, 'pro')
-                    elif subscription.items.data[0].price.id == PRICE_IDS['enterprise']:
-                        await rate_limiter.set_user_tier(user_id, 'enterprise')
+                    elif subscription.items.data[0].price.id == PRICE_IDS['plus']:
+                        await rate_limiter.set_user_tier(user_id, 'plus')
                 elif subscription.status in ['incomplete_expired', 'canceled']:
                     # Reset to free tier
                     await rate_limiter.set_user_tier(user_id, 'free')

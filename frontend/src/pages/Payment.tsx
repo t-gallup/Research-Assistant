@@ -22,7 +22,7 @@ const plans = [
     dailyLimit: 50,
   },
   {
-    name: "Pro",
+    name: "Plus",
     price: "$9.99",
     description: "For power users",
     features: ["500 requests per day"],
@@ -30,7 +30,7 @@ const plans = [
     recommended: true,
   },
   {
-    name: "Plus",
+    name: "Pro",
     price: "$29.99",
     description: "For unlimited acess",
     features: ["Unlimited requests"],
