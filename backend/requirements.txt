@@ -36,3 +36,6 @@ PyPDF2
 # Audio processing
 azure-cognitiveservices-speech
 soundfile
+
+# Payments
+stripe

@@ -112,7 +112,7 @@ async def get_usage_stats(request: Request,
         user_id = token.get('uid')
         logger.debug(f"Fetching usage stats for user: {user_id}")
 
-        if request.method != "OPTIONS":  # Skip check for OPTIONS requests
+        if request.method != "OPTIONS":
             # Get daily usage history
             daily_usage = await rate_limiter.get_daily_usage(user_id)
             

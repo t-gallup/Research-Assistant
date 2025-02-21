@@ -5,8 +5,9 @@ import { getAuth } from 'firebase/auth';
 import { Alert, AlertDescription } from '../components/Alert';
 import { Button } from '../components/Button';
 import Navbar from '../components/Navbar';
+import { format, parseISO } from 'date-fns';
 
-const UsagePage = () => {
+const Usage = () => {
   const navigate = useNavigate();
   const [usageData, setUsageData] = useState([]);
   const [quotaInfo, setQuotaInfo] = useState({
@@ -61,7 +62,6 @@ const UsagePage = () => {
         }
 
         const data = await response.json();
-        console.log('Received usage data:', data);
         setUsageData(data.daily_usage || []);
         setQuotaInfo({
           total_limit: data.total_limit / 2 || 0,
@@ -71,7 +71,6 @@ const UsagePage = () => {
         });
       } catch (err) {
         if (err.name === 'AbortError') {
-          console.log('Fetch aborted');
           return;
         }
         console.error('Error fetching usage data:', err);
@@ -167,12 +166,12 @@ const UsagePage = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis 
                     dataKey="date" 
-                    tickFormatter={(date) => new Date(date + 'T00:00:00Z').toLocaleDateString()}
+                    tickFormatter={(date) => format(parseISO(date), 'MM/dd/yyyy')}
                     stroke="#9CA3AF"
                   />
                   <YAxis stroke="#9CA3AF" />
                   <Tooltip 
-                    labelFormatter={(date) => new Date(date + 'T00:00:00Z').toLocaleDateString()}
+                    labelFormatter={(date) => format(parseISO(date), 'MM/dd/yyyy')}
                     formatter={(value) => [value, 'Requests']}
                     contentStyle={{
                       backgroundColor: '#1F2937',
@@ -202,4 +201,4 @@ const UsagePage = () => {
   );
 };
 
-export default UsagePage;
+export default Usage;

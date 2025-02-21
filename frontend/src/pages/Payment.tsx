@@ -17,7 +17,7 @@ const plans = [
   {
     name: "Free",
     price: "$0",
-    description: "For individual users and small projects",
+    description: "For individual users",
     features: ["25 requests per day"],
     dailyLimit: 50,
   },
@@ -71,7 +71,6 @@ const Payment = () => {
         }
 
         const data = await usageResponse.json();
-        console.log("Received usage data:", data.tier);
         setUserTier(data.tier); // Update state with the user's tier
       } catch (err) {
         console.error("Error fetching usage data:", err);
@@ -92,7 +91,6 @@ const Payment = () => {
       if (!user) {
         throw new Error("No user logged in");
       }
-      console.log(user);
 
       const idToken = await user.getIdToken();
 
