@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getAuth } from 'firebase/auth';
 import { Alert, AlertDescription } from '../components/Alert';
+import { Button } from '../components/ui/button';
 import Navbar from '../components/Navbar';
-import { parseISO, format } from 'date-fns';
 
 const UsagePage = () => {
+  const navigate = useNavigate();
   const [usageData, setUsageData] = useState([]);
   const [quotaInfo, setQuotaInfo] = useState({
     total_limit: 0,
@@ -94,6 +96,10 @@ const UsagePage = () => {
     };
   }, []);
 
+  const handleUpgrade = () => {
+    navigate('/payment');
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto p-6">
@@ -120,9 +126,19 @@ const UsagePage = () => {
       <div className="container mx-auto p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-300">API Usage Dashboard</h1>
-          <h1 className="text-2xl font-bold text-gray-300">
-            Current Tier: {quotaInfo.tier.charAt(0).toUpperCase() + quotaInfo.tier.slice(1)}
-          </h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-gray-300">
+              Current Tier: {quotaInfo.tier.charAt(0).toUpperCase() + quotaInfo.tier.slice(1)}
+            </h1>
+            {quotaInfo.tier !== 'enterprise' && (
+              <Button
+                onClick={handleUpgrade}
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                Upgrade Plan
+              </Button>
+            )}
+          </div>
         </div>
         
         <div className="grid gap-6 grid-cols-1 md:grid-cols-3 mb-6">
@@ -152,12 +168,12 @@ const UsagePage = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis 
                     dataKey="date" 
-                    tickFormatter={(date) => format(parseISO(date), 'MM/dd/yyyy')}
+                    tickFormatter={(date) => new Date(date + 'T00:00:00Z').toLocaleDateString()}
                     stroke="#9CA3AF"
                   />
                   <YAxis stroke="#9CA3AF" />
                   <Tooltip 
-                    labelFormatter={(date) => format(parseISO(date), 'MM/dd/yyyy')}
+                    labelFormatter={(date) => new Date(date + 'T00:00:00Z').toLocaleDateString()}
                     formatter={(value) => [value, 'Requests']}
                     contentStyle={{
                       backgroundColor: '#1F2937',
