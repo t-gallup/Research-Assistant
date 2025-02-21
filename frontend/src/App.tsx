@@ -9,6 +9,7 @@ import ProtectedRoute from "./components/Auth/ProtectedRoute";
 import Profile from "./pages/Profile";
 import SearchResults from './pages/SearchResults';
 import Usage from './pages/Usage';
+import Payment from "./pages/Payment";
 
 initializeApp(firebaseConfig);
 
@@ -41,6 +42,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Usage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment"
+              element={
+                <ProtectedRoute>
+                  <Payment />
                 </ProtectedRoute>
               }
             />

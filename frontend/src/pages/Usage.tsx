@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getAuth } from 'firebase/auth';
 import { Alert, AlertDescription } from '../components/Alert';
-import { Button } from '../components/ui/button';
+import { Button } from '../components/Button';
 import Navbar from '../components/Navbar';
 
 const UsagePage = () => {
@@ -41,7 +41,6 @@ const UsagePage = () => {
         }
 
         const idToken = await user.getIdToken();
-        console.log('Fetching usage data...');
         const response = await fetch(`${process.env.REACT_APP_API_URL || ''}/api/usage/stats`, {
           headers: {
             'Authorization': `Bearer ${idToken}`,
