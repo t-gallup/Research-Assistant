@@ -34,7 +34,19 @@ const SearchResults = () => {
             }
 
             try {
-                const response = await fetch(`${process.env.REACT_APP_API_URL}/api/search?q=${encodeURIComponent(searchQuery)}`);
+                const user = auth.currentUser
+                if (!user) {
+                    throw new Error('User not authenticated');
+                }
+                const token = await user.getIdToken();
+                const response = await fetch(
+                    `${process.env.REACT_APP_API_URL}/api/search?q=${encodeURIComponent(searchQuery)}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    }
+                );
                 if (!response.ok) {
                     throw new Error('Failed to fetch search results');
                 }
@@ -48,7 +60,7 @@ const SearchResults = () => {
         };
 
         fetchResults();
-    }, [searchQuery]);
+    }, [searchQuery, auth.currentUser]);
 
     const handleAnalyzeArticle = async (url: string) => {
         setIsAnalyzing(true);
