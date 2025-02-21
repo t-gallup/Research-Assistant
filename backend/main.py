@@ -6,6 +6,7 @@ import rag_pipeline as rp
 import logging
 import os
 import uuid
+import stripe
 from fastapi.staticfiles import StaticFiles
 import tts as t
 from rate_limiter import rate_limiter
@@ -18,6 +19,15 @@ load_secrets()
 
 init_firebase()
 
+# Initialize Stripe
+stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+
+# Price IDs for different tiers
+PRICE_IDS = {
+    'pro': os.getenv('STRIPE_PRO_PRICE_ID'),
+    'enterprise': os.getenv('STRIPE_ENTERPRISE_PRICE_ID')
+}
+
 # Set up logging
 logging.basicConfig(
     level=logging.DEBUG,
@@ -29,6 +39,11 @@ logger = logging.getLogger(__name__)
 
 class URLInput(BaseModel):
     url: str
+
+
+class UpgradeRequest(BaseModel):
+    payment_method_id: str
+    price_id: str  # Stripe Price ID for the selected tier
 
 
 app = FastAPI()
@@ -125,8 +140,118 @@ async def get_usage_stats(request: Request,
         logger.error(f"Error in get_usage_stats: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/api/upgrade")
-async def upgrade_plan()
+async def upgrade_plan(
+    upgrade_request: UpgradeRequest,
+    request: Request,
+    token: dict = Depends(verify_firebase_token)
+):
+    try:
+        user_id = token.get('uid')
+        
+        # Validate the price_id
+        if upgrade_request.price_id not in PRICE_IDS.values():
+            raise HTTPException(status_code=400, detail="Invalid price ID")
+
+        # Create or get customer
+        customers = stripe.Customer.list(metadata={'firebase_uid': user_id})
+        if customers.data:
+            customer = customers.data[0]
+        else:
+            # Create new customer
+            customer = stripe.Customer.create(
+                metadata={'firebase_uid': user_id},
+                payment_method=upgrade_request.payment_method_id,
+                invoice_settings={
+                    'default_payment_method': upgrade_request.payment_method_id
+                }
+            )
+
+        # Create subscription
+        try:
+            subscription = stripe.Subscription.create(
+                customer=customer.id,
+                items=[{'price': upgrade_request.price_id}],
+                payment_behavior='default_incomplete',
+                payment_settings={'save_default_payment_method': 'on_subscription'},
+                expand=['latest_invoice.payment_intent'],
+                metadata={'firebase_uid': user_id}
+            )
+
+            # Update user's tier in rate limiter
+            new_tier = 'pro' if upgrade_request.price_id == PRICE_IDS['pro'] else 'enterprise'
+            await rate_limiter.set_user_tier(user_id, new_tier)
+            
+            return {
+                'subscription_id': subscription.id,
+                'client_secret': subscription.latest_invoice.payment_intent.client_secret,
+                'status': subscription.status
+            }
+
+        except stripe.error.CardError as e:
+            raise HTTPException(status_code=400, detail=str(e.error))
+        
+    except stripe.error.StripeError as e:
+        logger.error(f"Stripe error: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error upgrading plan: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.post("/stripe/webhook")
+async def stripe_webhook(request: Request):
+    try:
+        # Get the webhook secret from environment variables
+        webhook_secret = os.getenv('STRIPE_WEBHOOK_SECRET')
+        
+        # Get the stripe signature from headers
+        stripe_signature = request.headers.get('stripe-signature')
+        
+        # Get the raw request body
+        payload = await request.body()
+        
+        try:
+            # Verify the event
+            event = stripe.Webhook.construct_event(
+                payload, stripe_signature, webhook_secret
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail="Invalid payload")
+        except stripe.error.SignatureVerificationError as e:
+            raise HTTPException(status_code=400, detail="Invalid signature")
+
+        # Handle the event
+        if event.type == 'customer.subscription.updated':
+            subscription = event.data.object
+            user_id = subscription.metadata.get('firebase_uid')
+            
+            if user_id:
+                # Update user's tier based on subscription status
+                if subscription.status == 'active':
+                    # Determine tier from price ID
+                    if subscription.items.data[0].price.id == PRICE_IDS['pro']:
+                        await rate_limiter.set_user_tier(user_id, 'pro')
+                    elif subscription.items.data[0].price.id == PRICE_IDS['enterprise']:
+                        await rate_limiter.set_user_tier(user_id, 'enterprise')
+                elif subscription.status in ['incomplete_expired', 'canceled']:
+                    # Reset to free tier
+                    await rate_limiter.set_user_tier(user_id, 'free')
+                    
+        elif event.type == 'customer.subscription.deleted':
+            subscription = event.data.object
+            user_id = subscription.metadata.get('firebase_uid')
+            
+            if user_id:
+                # Reset to free tier
+                await rate_limiter.set_user_tier(user_id, 'free')
+
+        return {"status": "success"}
+
+    except Exception as e:
+        logger.error(f"Error processing webhook: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post("/api/generate-qna")
