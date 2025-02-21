@@ -34,16 +34,11 @@ jobs:
           echo "REACT_APP_FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}" >> frontend/.env
           echo "REACT_APP_FIREBASE_STORAGE_BUCKET=summarization-3a05c.appspot.com" >> frontend/.env
           echo "REACT_APP_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}" >> frontend/.env
-          echo "REACT_APP_FIREBASE_APP_ID=1:${FIREBASE_PROJECT_NUMBER}:web:${WEB_APP_ID}" >> frontend/.env
+          echo "REACT_APP_FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }}" >> frontend/.env
 
       - name: Build
         working-directory: frontend
         run: npm run build
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
       - name: Deploy to Firebase
         uses: FirebaseExtended/action-hosting-deploy@v0
