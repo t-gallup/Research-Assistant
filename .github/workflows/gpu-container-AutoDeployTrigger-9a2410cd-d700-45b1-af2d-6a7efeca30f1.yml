@@ -29,11 +29,6 @@ jobs:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           token_format: "access_token"
           create_credentials_file: true
-      
-      - name: Verify GCP Authentication
-        run: |
-          gcloud config list
-          gcloud projects list
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
@@ -75,6 +70,7 @@ jobs:
             STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
             STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }}
             STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }}
+            PORT=8000
           flags: >-
             --port=8000
             --cpu=2
@@ -83,7 +79,6 @@ jobs:
             --cpu-boost
             --min-instances=1
             --timeout=300
-            --set-env-vars=PORT=8000
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
