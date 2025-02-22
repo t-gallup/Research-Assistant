@@ -13,8 +13,6 @@ firebase-admin
 
 # ML and AI
 openai
-cohere
-tensorflow
 protobuf
 google-api-python-client
 google-auth-httplib2
