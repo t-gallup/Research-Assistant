@@ -30,6 +30,15 @@ jobs:
           token_format: "access_token"
           create_credentials_file: true
 
+      # Add debug step to verify project configuration
+      - name: Debug Project Configuration
+        run: |
+          echo "Current Project ID: ${{ secrets.GCP_PROJECT_ID }}"
+          echo "Listing available projects:"
+          gcloud projects list
+          echo "Current config:"
+          gcloud config list
+
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
