@@ -13,9 +13,14 @@ WORKDIR /app
 RUN mkdir audio
 
 # Copy backend files
+COPY config.py
+COPY firebase_auth.py
 COPY requirements.txt .
 COPY main.py .
 COPY rag_pipeline.py .
+COPY rate_limiter.py
+COPY search_routes.py
+COPY summarize_script.py
 COPY tts.py .
 
 # Install requirements

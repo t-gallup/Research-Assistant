@@ -13,7 +13,7 @@ from rate_limiter import rate_limiter
 from config import load_secrets
 from firebase_auth import init_firebase, verify_firebase_token
 from search_routes import router as search_router
-from datetime import datetime, timedelta
+from datetime import datetime
 
 load_secrets()
 
@@ -53,6 +53,8 @@ origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5173",
+    "https://research-assistant.app",
+    "https://www.research-assistant.app"
 ]
 
 app.add_middleware(
