@@ -60,7 +60,6 @@ jobs:
           region: ${{ secrets.GCP_REGION }}
           image: ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/research-assistant/backend:${{ github.sha }}
           env_vars: |
-            ALLOWED_ORIGINS=https://research-assistant.app\,https://www.research-assistant.app
             REDIS_HOST=${{ secrets.REDIS_HOST }}
             REDIS_PORT=${{ secrets.REDIS_PORT }}
             REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
