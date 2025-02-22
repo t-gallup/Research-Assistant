@@ -30,12 +30,22 @@ jobs:
           token_format: "access_token"
           create_credentials_file: true
 
+      # Add debug step to verify project configuration
+      - name: Debug Project Configuration
+        run: |
+          echo "Current Project ID: ${{ secrets.GCP_PROJECT_ID }}"
+          echo "Listing available projects:"
+          gcloud projects list
+          echo "Current config:"
+          gcloud config list
+
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           install_components: "docker-credential-gcr"
 
+      # Set up Redis secrets and configuration
       - name: Configure Redis
         run: |
           echo "REDIS_HOST=${{ secrets.REDIS_HOST }}" >> backend/.env
@@ -43,6 +53,7 @@ jobs:
           echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> backend/.env
           echo "REDIS_USERNAME=${{ secrets.REDIS_USERNAME }}" >> backend/.env
 
+      # Add Firebase Admin SDK credentials
       - name: Setup Firebase Credentials
         run: |
           echo '${{ secrets.FIREBASE_ADMIN_SDK_JSON }}' > backend/firebase-adminsdk.json
@@ -104,9 +115,21 @@ jobs:
           npm ci
           npm run build
 
-      # Deploy to Cloud Storage instead of Firebase
+      # Deploy to Cloud Storage with improved error handling
       - name: Deploy Frontend to Cloud Storage
         run: |
+          # Sync build directory to bucket
           gsutil -m rsync -r frontend/build ${{ secrets.GCP_STORAGE_BUCKET }}
-          gsutil -m setmeta -h "Cache-Control:public, max-age=3600" ${{ secrets.GCP_STORAGE_BUCKET }}/**/*.html
-          gsutil -m setmeta -h "Cache-Control:public, max-age=31536000" ${{ secrets.GCP_STORAGE_BUCKET }}/**/*.{css,js,jpg,jpeg,png,gif,svg}
+          
+          # Set cache for HTML files
+          gsutil -m setmeta -h "Cache-Control:public, max-age=3600" ${{ secrets.GCP_STORAGE_BUCKET }}/**/*.html || true
+          
+          # Set cache for CSS and JS files
+          for ext in css js; do
+            gsutil -m setmeta -h "Cache-Control:public, max-age=31536000" ${{ secrets.GCP_STORAGE_BUCKET }}/**/*.${ext} || true
+          done
+          
+          # Optional: Set cache for any images that exist (won't fail if none found)
+          for ext in jpg jpeg png gif svg; do
+            gsutil -m setmeta -h "Cache-Control:public, max-age=31536000" ${{ secrets.GCP_STORAGE_BUCKET }}/**/*.${ext} || true
+          done
