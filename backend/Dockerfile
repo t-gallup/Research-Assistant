@@ -22,6 +22,7 @@ COPY rate_limiter.py .
 COPY search_routes.py .
 COPY summarize_script.py .
 COPY tts.py .
+COPY firebase-adminsdk.json .
 
 # Install requirements
 RUN pip3 install -r requirements.txt
