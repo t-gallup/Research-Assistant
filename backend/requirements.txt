@@ -30,6 +30,7 @@ certifi
 charset-normalizer
 idna
 PyPDF2
+aiohttp
 
 # Audio processing
 azure-cognitiveservices-speech
