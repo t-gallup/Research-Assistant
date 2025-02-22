@@ -53,6 +53,11 @@ jobs:
           echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> backend/.env
           echo "REDIS_USERNAME=${{ secrets.REDIS_USERNAME }}" >> backend/.env
 
+      # Add Firebase Admin SDK credentials
+      - name: Setup Firebase Credentials
+        run: |
+          echo '${{ secrets.FIREBASE_ADMIN_SDK_JSON }}' > backend/firebase-adminsdk.json
+
       - name: Configure Docker for Artifact Registry
         run: |
           gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev
