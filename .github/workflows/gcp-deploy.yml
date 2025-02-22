@@ -1,0 +1,45 @@
+name: Deploy to GCP
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+
+jobs:
+  deploy:
+    name: Deploy to GCP
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+      - name: Deploy to Cloud Storage
+        run: |
+          gsutil -m rsync -r -d frontend/build gs://www.research-assistant.app
+          gsutil -m setmeta -h "Cache-Control:public, max-age=3600" gs://www.research-assistant.app/**/*.html
+          gsutil -m setmeta -h "Cache-Control:public, max-age=31536000" gs://www.research-assistant.app/**/*.{css,js,jpg,jpeg,png,gif,svg}
