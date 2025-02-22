@@ -29,6 +29,11 @@ jobs:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           token_format: "access_token"
           create_credentials_file: true
+      
+      - name: Verify GCP Authentication
+        run: |
+          gcloud config list
+          gcloud projects list
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
@@ -78,6 +83,7 @@ jobs:
             --cpu-boost
             --min-instances=1
             --timeout=300
+            --set-env-vars=PORT=8000
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
