@@ -43,7 +43,7 @@ class URLInput(BaseModel):
 
 class UpgradeRequest(BaseModel):
     payment_method_id: str
-    price_id: str  # Stripe Price ID for the selected tier
+    price_id: str
 
 
 app = FastAPI()
