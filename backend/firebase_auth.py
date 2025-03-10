@@ -1,19 +1,11 @@
 import firebase_admin
 from firebase_admin import credentials, auth
 from fastapi import HTTPException, Request
-from config import access_secret_version
-import os
-import json
 
 
 def init_firebase():
-    # Access Firebase credentials through Secret Manager if production
-    if os.getenv('ENVIRONMENT') == 'production':
-        cred_json = os.getenv('FIREBASE_CREDENTIALS')
-        cred = credentials.Certificate(json.loads(cred_json))
-    else:
-        # Use service account key file if local
-        cred = credentials.Certificate('firebase-adminsdk.json')
+    # Access Firebase credentials through Firebase JSON
+    cred = credentials.Certificate('firebase-adminsdk.json')
 
     firebase_admin.initialize_app(cred)
 
