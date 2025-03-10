@@ -9,7 +9,7 @@ import json
 def init_firebase():
     # Access Firebase credentials through Secret Manager if production
     if os.getenv('ENVIRONMENT') == 'production':
-        project_id = os.getenv('GCP_SECRET_ID')
+        project_id = os.getenv('GCP_PROJECT_ID')
         cred_json = access_secret_version(project_id, 'FIREBASE_CREDENTIALS')
         cred = credentials.Certificate(json.loads(cred_json))
     else:

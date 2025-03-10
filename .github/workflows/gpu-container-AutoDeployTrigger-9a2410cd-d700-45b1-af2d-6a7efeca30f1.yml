@@ -76,6 +76,7 @@ jobs:
           image: ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/research-assistant/backend:${{ github.sha }}
           env_vars: |
             ENVIRONMENT=production
+            GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
             REDIS_HOST=${{ secrets.REDIS_HOST }}
             REDIS_PORT=${{ secrets.REDIS_PORT }}
             REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
