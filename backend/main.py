@@ -150,7 +150,7 @@ async def upgrade_plan(
 ):
     try:
         user_id = token.get('uid')
-        
+
         # Validate the price_id
         if upgrade_request.price_id not in PRICE_IDS.values():
             raise HTTPException(status_code=400, detail="Invalid price ID")
