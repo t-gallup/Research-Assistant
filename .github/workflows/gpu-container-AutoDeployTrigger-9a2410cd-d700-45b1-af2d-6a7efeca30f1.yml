@@ -77,6 +77,7 @@ jobs:
           env_vars: |
             ENVIRONMENT=production
             GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+            GCP_PROJECT_NUMBER=${{ secrets.GCP_PROJECT_NUMBER }}
             REDIS_HOST=${{ secrets.REDIS_HOST }}
             REDIS_PORT=${{ secrets.REDIS_PORT }}
             REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
