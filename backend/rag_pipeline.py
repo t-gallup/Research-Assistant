@@ -11,6 +11,7 @@ from google import genai
 from google.genai import types
 import httpx
 from bs4 import BeautifulSoup
+import fitz
 
 load_dotenv()
 
@@ -192,6 +193,87 @@ logger = logging.getLogger(__name__)
 #         except Exception as inner_e:
 #             logger.exception("Local summarization failed:")
 #             raise RuntimeError(f"Summarization failed: {str(inner_e)}")
+def extract_arxiv_title(pdf_url):
+    """Extract title from arXiv papers"""
+    
+    # Download the PDF
+    response = requests.get(pdf_url)
+    pdf_data = BytesIO(response.content)
+    
+    # Try to extract arXiv ID first
+    arxiv_id = None
+    if "arxiv.org" in pdf_url:
+        arxiv_id_match = re.search(r'(\d+\.\d+)', pdf_url)
+        if arxiv_id_match:
+            arxiv_id = arxiv_id_match.group(1)
+    
+    # If we have arxiv_id, try the API method first
+    if arxiv_id:
+        try:
+            api_url = f"https://export.arxiv.org/api/query?id_list={arxiv_id}"
+            response = requests.get(api_url)
+            if response.status_code == 200:
+                import xml.etree.ElementTree as ET
+                root = ET.fromstring(response.content)
+                # Extract title from XML (using proper XML namespaces)
+                ns = {'atom': 'http://www.w3.org/2005/Atom'}
+                title_elem = root.find('.//atom:entry/atom:title', ns)
+                if title_elem is not None and title_elem.text:
+                    return title_elem.text.strip()
+        except Exception as e:
+            print(f"API method failed: {e}")
+    
+    # Fallback to direct PDF extraction
+    try:
+        doc = fitz.open(stream=pdf_data, filetype="pdf")
+        
+        # Strategy 1: Look for largest text on first page
+        page = doc[0]
+        blocks = page.get_text("dict")["blocks"]
+        largest_size = 0
+        largest_text = ""
+        
+        # Find text with largest font size
+        for block in blocks:
+            if "lines" in block:
+                for line in block["lines"]:
+                    for span in line["spans"]:
+                        if span["size"] > largest_size and len(span["text"].strip()) > 10:
+                            largest_size = span["size"]
+                            largest_text = span["text"].strip()
+        
+        if largest_text:
+            return largest_text
+            
+        # Strategy 2: Get first few lines and look for a title-like pattern
+        text = page.get_text("text").strip().split('\n')
+        for i in range(min(5, len(text))):
+            line = text[i].strip()
+            # Title likely characteristics: not too short, not too long, no trailing period
+            if 15 <= len(line) <= 100 and not line.endswith('.') and not line.startswith('http'):
+                return line
+                
+        # Strategy 3: Try getting text from the top of the page
+        blocks.sort(key=lambda b: b["bbox"][1])
+        if blocks and "lines" in blocks[0] and blocks[0]["lines"]:
+            first_line = blocks[0]["lines"][0]
+            if "spans" in first_line and first_line["spans"]:
+                return first_line["spans"][0]["text"].strip()
+                
+        # Fallback to traditional metadata
+        if doc.metadata and doc.metadata.get("title"):
+            return doc.metadata.get("title")
+            
+        return "Untitled Document"
+            
+    except Exception as e:
+        print(f"PDF extraction failed: {e}")
+        return "Extraction Failed"
+    finally:
+        if 'doc' in locals():
+            doc.close()
+
+
 def summarize_content(url):
     client = genai.Client()
     doc_data = httpx.get(url)
@@ -213,11 +295,13 @@ def summarize_content(url):
             pdf_reader = PdfReader(pdf_file)
             # Try to get title from PDF metadata
             title = pdf_reader.metadata.get('/Title', '')
+            if title == '':
+                title = extract_arxiv_title(url)
         except Exception as e:
             logger.exception(e)
             pass
     if content_type == 'text/html':
-        soup = BeautifulSoup(doc_data, 'html.parser')
+        soup = BeautifulSoup(doc_data.text, 'html.parser')
         title = ""
         if soup.title:
             title = soup.title.string.strip()
