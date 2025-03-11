@@ -11,6 +11,10 @@ def access_secret_version(project_id, secret_id, version_id="latest"):
 
 def load_secrets():
     if os.getenv('ENVIRONMENT') == 'production':
+        # If variables already exist, skip the Secret Manager
+        if os.getenv('OPENAI_API_KEY') and os.getenv('AZURE_SPEECH_KEY') and os.getenv('REDIS_PASSWORD'):
+            return
+
         project_id = os.getenv('GCP_PROJECT_NUMBER')
         secrets = {
             'OPENAI_API_KEY': access_secret_version(project_id, 'openai-api-key'),

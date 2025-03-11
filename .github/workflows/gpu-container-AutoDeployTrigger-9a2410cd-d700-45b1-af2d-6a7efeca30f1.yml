@@ -44,16 +44,6 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           install_components: "docker-credential-gcr"
-          
-      - name: Verify Secret Manager permissions
-        run: |
-          # Check if service account has Secret Manager access
-          SERVICE_ACCOUNT=$(gcloud config get-value account)
-          echo "Using service account: $SERVICE_ACCOUNT"
-          gcloud projects add-iam-policy-binding ${{ secrets.GCP_PROJECT_ID }} \
-          --member="serviceAccount:$SERVICE_ACCOUNT" \
-          --role="roles/secretmanager.secretAccessor" \
-          --condition=None
       # Set up Redis secrets and configuration
       - name: Configure Redis
         run: |
@@ -96,6 +86,8 @@ jobs:
             STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
             STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }}
             STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }}
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+            AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }}
           flags: >-
             --port=8000
             --cpu=2
