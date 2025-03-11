@@ -11,7 +11,7 @@ def access_secret_version(project_id, secret_id, version_id="latest"):
 
 def load_secrets():
     if os.getenv('ENVIRONMENT') == 'production':
-        project_id = os.getenv('GOOGLE_CLOUD_PROJECT')
+        project_id = os.getenv('GCP_PROJECT_ID')
         secrets = {
             'OPENAI_API_KEY': access_secret_version(project_id, 'openai-api-key'),
             'AZURE_SPEECH_KEY': access_secret_version(project_id, 'azure-speech-key'),
