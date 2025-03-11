@@ -1,13 +1,16 @@
 import firebase_admin
 from firebase_admin import credentials, auth
 from fastapi import HTTPException, Request
+import os
 
 
 def init_firebase():
     # Access Firebase credentials through Firebase JSON
     cred = credentials.Certificate('firebase-adminsdk.json')
 
-    firebase_admin.initialize_app(cred)
+    firebase_admin.initialize_app(cred, {
+        'projectId': os.getenv('FIREBASE_PROJECT_ID')
+    })
 
 
 async def verify_firebase_token(request: Request):
