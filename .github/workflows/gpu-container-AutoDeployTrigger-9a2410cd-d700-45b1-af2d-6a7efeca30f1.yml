@@ -44,7 +44,15 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           install_components: "docker-credential-gcr"
-
+          
+      - name: Verify Secret Manager permissions
+        run: |
+          # Check if service account has Secret Manager access
+          SERVICE_ACCOUNT=$(gcloud config get-value account)
+          echo "Using service account: $SERVICE_ACCOUNT"
+          gcloud projects add-iam-policy-binding ${{ secrets.GCP_PROJECT_ID }} \
+          --member="serviceAccount:$SERVICE_ACCOUNT" \
+          --role="roles/secretmanager.secretAccessor"
       # Set up Redis secrets and configuration
       - name: Configure Redis
         run: |
