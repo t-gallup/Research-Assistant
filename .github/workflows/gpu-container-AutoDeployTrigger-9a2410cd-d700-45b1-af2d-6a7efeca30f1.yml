@@ -132,7 +132,7 @@ jobs:
             gsutil -m setmeta -h "Cache-Control:public, max-age=31536000" ${{ secrets.GCP_STORAGE_BUCKET }}/**/*.${ext} || true
           done
           
-          # Optional: Set cache for any images that exist (won't fail if none found)
+          # Set cache for image files
           for ext in jpg jpeg png gif svg; do
             gsutil -m setmeta -h "Cache-Control:public, max-age=31536000" ${{ secrets.GCP_STORAGE_BUCKET }}/**/*.${ext} || true
           done
