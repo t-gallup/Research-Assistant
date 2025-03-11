@@ -52,7 +52,8 @@ jobs:
           echo "Using service account: $SERVICE_ACCOUNT"
           gcloud projects add-iam-policy-binding ${{ secrets.GCP_PROJECT_ID }} \
           --member="serviceAccount:$SERVICE_ACCOUNT" \
-          --role="roles/secretmanager.secretAccessor"
+          --role="roles/secretmanager.secretAccessor" \
+          --condition=None
       # Set up Redis secrets and configuration
       - name: Configure Redis
         run: |
