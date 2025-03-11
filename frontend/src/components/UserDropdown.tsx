@@ -15,12 +15,10 @@ const UserDropdown = () => {
     
     const photoUrl = user.photoURL || user.providerData?.[0]?.photoURL;
     if (!photoUrl) return null;
-
     if (photoUrl.includes('googleusercontent.com')) {
       const baseUrl = photoUrl.split('=')[0];
-      return `${baseUrl}=s96-c`;
+      return baseUrl;
     }
-    
     return photoUrl;
   };
 
@@ -58,7 +56,7 @@ const UserDropdown = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-orange-500"
+        className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center"
       >
         {getGooglePhotoUrl() ? (
           <img 
