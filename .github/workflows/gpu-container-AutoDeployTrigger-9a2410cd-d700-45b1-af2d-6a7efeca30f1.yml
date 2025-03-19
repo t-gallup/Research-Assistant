@@ -52,14 +52,19 @@ jobs:
           cd ../deployment/lambda
           zip -r ../lambda_function.zip .
 
-      - name: Deploy to Lambda
+          - name: Upload Lambda package to S3
+          run: |
+            aws s3 cp deployment/lambda_function.zip s3://${{ secrets.AWS_S3_BUCKET }}/lambda_function.zip
+        
+      - name: Deploy to Lambda from S3
         uses: appleboy/lambda-action@master
         with:
           aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws_region: ${{ secrets.AWS_REGION }}
           function_name: research-assistant-backend
-          zip_file: deployment/lambda_function.zip
+          s3_bucket: ${{ secrets.AWS_S3_BUCKET }}
+          s3_key: lambda_function.zip
           environment: |
             DEPLOYMENT=aws
             ENVIRONMENT=production
