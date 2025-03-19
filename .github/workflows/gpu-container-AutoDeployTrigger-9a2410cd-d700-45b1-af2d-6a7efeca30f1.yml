@@ -1,4 +1,4 @@
-name: Deploy to Google Cloud
+name: Deploy to AWS
 
 on:
   push:
@@ -6,77 +6,63 @@ on:
     paths:
       - "backend/**"
       - "frontend/**"
-      - ".github/workflows/gpu-container-AutoDeployTrigger-9a2410cd-d700-45b1-af2d-6a7efeca30f1.yml"
+      - ".github/workflows/aws-amplify-deployment.yml"
+      - "amplify.yml"
 
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  deploy-backend:
     runs-on: ubuntu-latest
-    permissions:
-      contents: "read"
-      id-token: "write"
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Google Auth
-        id: auth
-        uses: google-github-actions/auth@v1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
         with:
-          credentials_json: '${{ secrets.GCP_SA_KEY }}'
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          token_format: "access_token"
-          create_credentials_file: true
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-      # Add debug step to verify project configuration
-      - name: Debug Project Configuration
-        run: |
-          echo "Current Project ID: ${{ secrets.GCP_PROJECT_ID }}"
-          echo "Listing available projects:"
-          gcloud projects list
-          echo "Current config:"
-          gcloud config list
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v1
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          install_components: "docker-credential-gcr"
-      # Set up Redis secrets and configuration
-      - name: Configure Redis
-        run: |
-          echo "REDIS_HOST=${{ secrets.REDIS_HOST }}" >> backend/.env
-          echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> backend/.env
-          echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> backend/.env
-          echo "REDIS_USERNAME=${{ secrets.REDIS_USERNAME }}" >> backend/.env
-
-      # Add Firebase Admin SDK credentials
+      # Set up Firebase Admin SDK credentials
       - name: Setup Firebase Credentials
         run: |
           echo '${{ secrets.FIREBASE_ADMIN_SDK_JSON }}' > backend/firebase-adminsdk.json
 
-      - name: Configure Docker for Artifact Registry
-        run: |
-          gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev
-
-      - name: Build and Push Backend Container
-        run: |
-          docker build -t ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/research-assistant/backend:${{ github.sha }} ./backend
-          docker push ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/research-assistant/backend:${{ github.sha }}
-
-      - name: Deploy to Cloud Run
-        id: deploy-backend
-        uses: google-github-actions/deploy-cloudrun@v1
+      # Option 1: Deploy backend to Lambda
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          service: research-assistant-backend
-          region: ${{ secrets.GCP_REGION }}
-          image: ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/research-assistant/backend:${{ github.sha }}
-          env_vars: |
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Build Lambda package
+        run: |
+          mkdir -p deployment/lambda
+          cd backend
+          pip install -r requirements.txt -t ../deployment/lambda
+          cp -r *.py ../deployment/lambda/
+          cp firebase-adminsdk.json ../deployment/lambda/
+          cd ../deployment/lambda
+          zip -r ../lambda_function.zip .
+
+      - name: Deploy to Lambda
+        uses: appleboy/lambda-action@master
+        with:
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws_region: ${{ secrets.AWS_REGION }}
+          function_name: research-assistant-backend
+          zip_file: deployment/lambda_function.zip
+          environment: |
+            DEPLOYMENT=aws
             ENVIRONMENT=production
-            GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
-            GCP_PROJECT_NUMBER=${{ secrets.GCP_PROJECT_NUMBER }}
             REDIS_HOST=${{ secrets.REDIS_HOST }}
             REDIS_PORT=${{ secrets.REDIS_PORT }}
             REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
@@ -88,73 +74,40 @@ jobs:
             STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }}
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
             AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }}
-          flags: >-
-            --port=8000
-            --cpu=2
-            --memory=4Gi
-            --allow-unauthenticated
-            --cpu-boost
-            --min-instances=1
-            --timeout=300
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "18"
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+      # Option 2 (Alternative): Deploy backend to ECS
+      # Uncomment this section and comment out the Lambda deployment section above
+      # if you want to use ECS instead of Lambda
+      
+      # - name: Login to Amazon ECR
+      #   id: login-ecr
+      #   uses: aws-actions/amazon-ecr-login@v1
+      #
+      # - name: Build, tag, and push image to Amazon ECR
+      #   id: build-image
+      #   env:
+      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      #     ECR_REPOSITORY: research-assistant-backend
+      #     IMAGE_TAG: ${{ github.sha }}
+      #   run: |
+      #     docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
+      #     docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+      #     echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+      # 
+      # - name: Deploy to Amazon ECS
+      #   uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      #   with:
+      #     task-definition: task-definition.json
+      #     service: research-assistant-backend
+      #     cluster: research-assistant
+      #     wait-for-service-stability: true
 
-      # Create frontend environment variables including the backend URL
-      - name: Create Frontend Environment
+      # Update Amplify environment variable with backend URL
+      - name: Update Amplify Environment Variables
         run: |
-          echo "REACT_APP_API_URL=${{ steps.deploy-backend.outputs.url }}" >> frontend/.env
-          echo "REACT_APP_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}" >> frontend/.env
-          echo "REACT_APP_FIREBASE_AUTH_DOMAIN=summarization-3a05c.firebaseapp.com" >> frontend/.env
-          echo "REACT_APP_FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}" >> frontend/.env
-          echo "REACT_APP_FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }}" >> frontend/.env
-          
-      - name: Build Frontend
-        working-directory: ./frontend
-        run: |
-          npm ci
-          npm run build
+          aws amplify update-app --app-id ${{ secrets.AWS_AMPLIFY_APP_ID }} \
+            --environment-variables REACT_APP_API_URL=https://your-api-gateway-url.execute-api.${{ secrets.AWS_REGION }}.amazonaws.com/prod
 
-      # Deploy to Cloud Storage with improved error handling
-      - name: Deploy Frontend to Cloud Storage
-        run: |
-          # Sync build directory to bucket
-          gsutil -m rsync -r frontend/build ${{ secrets.GCP_STORAGE_BUCKET }}
-          
-          # Set website configuration
-          gsutil web set -m index.html -e index.html ${{ secrets.GCP_STORAGE_BUCKET }}
-          
-          # Ensure public access to bucket contents
-          gsutil iam ch allUsers:objectViewer ${{ secrets.GCP_STORAGE_BUCKET }}
-          
-          # Set CORS configuration
-          cat > cors-config.json << EOL
-          [
-            {
-              "origin": ["*"],
-              "method": ["GET", "HEAD", "OPTIONS"],
-              "responseHeader": ["Content-Type", "Access-Control-Allow-Origin", "Authorization"],
-              "maxAgeSeconds": 3600
-            }
-          ]
-          EOL
-          gsutil cors set cors-config.json ${{ secrets.GCP_STORAGE_BUCKET }}
-
-          # Set cache for HTML files
-          gsutil -m setmeta -h "Cache-Control:public, max-age=3600" ${{ secrets.GCP_STORAGE_BUCKET }}/**/*.html || true
-          
-          # Set cache for CSS and JS files
-          for ext in css js; do
-            gsutil -m setmeta -h "Cache-Control:public, max-age=31536000" ${{ secrets.GCP_STORAGE_BUCKET }}/**/*.${ext} || true
-          done
-          
-          # Set cache for image files
-          for ext in jpg jpeg png gif svg; do
-            gsutil -m setmeta -h "Cache-Control:public, max-age=31536000" ${{ secrets.GCP_STORAGE_BUCKET }}/**/*.${ext} || true
-          done
-
-          echo "Frontend deployed to: https://storage.googleapis.com/$(echo ${{ secrets.GCP_STORAGE_BUCKET }} | sed 's|gs://||g')/index.html"
+  # Frontend deployment is handled automatically by Amplify
+  # No additional steps needed as Amplify will detect the push to the repository
+  # and trigger a build and deploy based on the amplify.yml configuration
