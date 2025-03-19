@@ -107,6 +107,9 @@ jobs:
         run: |
           aws amplify update-app --app-id ${{ secrets.AWS_AMPLIFY_APP_ID }} \
             --environment-variables REACT_APP_API_URL=https://your-api-gateway-url.execute-api.${{ secrets.AWS_REGION }}.amazonaws.com/prod
+            REACT_APP_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }},\
+            REACT_APP_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }},\
+            REACT_APP_FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }}
 
   # Frontend deployment is handled automatically by Amplify
   # No additional steps needed as Amplify will detect the push to the repository
