@@ -52,9 +52,9 @@ jobs:
           cd ../deployment/lambda
           zip -r ../lambda_function.zip .
 
-          - name: Upload Lambda package to S3
-          run: |
-            aws s3 cp deployment/lambda_function.zip s3://${{ secrets.AWS_S3_BUCKET }}/lambda_function.zip
+      - name: Upload Lambda package to S3
+        run: |
+          aws s3 cp deployment/lambda_function.zip s3://${{ secrets.AWS_S3_BUCKET }}/lambda_function.zip
         
       - name: Deploy to Lambda from S3
         uses: appleboy/lambda-action@master
