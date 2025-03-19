@@ -3,7 +3,7 @@ fastapi
 uvicorn
 pydantic
 pydantic-settings
-mangum  # Added for AWS Lambda compatibility
+mangum
 
 # Rate limiting and authentication
 redis
@@ -14,11 +14,6 @@ firebase-admin
 
 # ML and AI
 openai
-protobuf
-google-api-python-client
-google-auth-httplib2
-google-auth-oauthlib
-google-cloud-secret-manager
 google-genai
 
 # AWS dependencies
@@ -30,10 +25,6 @@ beautifulsoup4
 requests
 python-dotenv
 httpx
-urllib3
-certifi
-charset-normalizer
-idna
 PyPDF2
 aiohttp
 pymupdf
