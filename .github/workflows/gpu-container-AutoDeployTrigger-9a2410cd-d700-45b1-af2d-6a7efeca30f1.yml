@@ -6,7 +6,7 @@ on:
     paths:
       - "backend/**"
       - "frontend/**"
-      - ".github/workflows/**"
+      - ".github/workflows/gpu-container-AutoDeployTrigger-9a2410cd-d700-45b1-af2d-6a7efeca30f1.yml"
       - "amplify.yml"
 
   workflow_dispatch:
