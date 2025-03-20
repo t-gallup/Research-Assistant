@@ -92,7 +92,15 @@ jobs:
               ] |
               .containerDefinitions[0].logConfiguration.options."awslogs-region" = $aws_region' \
               task-definition-base.json > task-definition-modified.json
-
+      
+      - name: Debug task definition
+        run: |
+          echo "Checking JSON validity..."
+          echo "----- BEGIN JSON FILE -----"
+          cat task-definition-modified.json
+          echo "----- END JSON FILE -----"
+          echo "Validating with jq..."
+          jq . task-definition-modified.json || echo "JSON validation failed"
         
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
