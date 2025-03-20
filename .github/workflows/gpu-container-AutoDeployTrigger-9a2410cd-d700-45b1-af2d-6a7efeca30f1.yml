@@ -57,66 +57,68 @@ jobs:
       - name: Create ECS task definition
         id: register-task-def
         run: |
-          # Create container definition using jq to ensure proper JSON formatting
-          jq -n '{
-            containerDefinitions: [
+          # Use a more direct approach to create the JSON file
+          cat > task-definition.json << EOF
+          {
+            "containerDefinitions": [
               {
-                name: "research-assistant-backend",
-                image: env.ECR_REGISTRY + "/research-assistant-backend:latest",
-                essential: true,
-                portMappings: [
+                "name": "research-assistant-backend",
+                "image": "${ECR_REGISTRY}/research-assistant-backend:latest",
+                "essential": true,
+                "portMappings": [
                   {
-                    containerPort: 8000,
-                    hostPort: 8000,
-                    protocol: "tcp"
+                    "containerPort": 8000,
+                    "hostPort": 8000,
+                    "protocol": "tcp"
                   }
                 ],
-                environment: [
-                  {name: "DEPLOYMENT", value: "aws"},
-                  {name: "ENVIRONMENT", value: "production"},
-                  {name: "REDIS_HOST", value: env.REDIS_HOST},
-                  {name: "REDIS_PORT", value: env.REDIS_PORT},
-                  {name: "REDIS_PASSWORD", value: env.REDIS_PASSWORD},
-                  {name: "REDIS_USERNAME", value: env.REDIS_USERNAME},
-                  {name: "FIREBASE_PROJECT_ID", value: env.FIREBASE_PROJECT_ID},
-                  {name: "STRIPE_SECRET_KEY", value: env.STRIPE_SECRET_KEY},
-                  {name: "STRIPE_WEBHOOK_SECRET", value: env.STRIPE_WEBHOOK_SECRET},
-                  {name: "STRIPE_PRO_PRICE_ID", value: env.STRIPE_PRO_PRICE_ID},
-                  {name: "STRIPE_PLUS_PRICE_ID", value: env.STRIPE_PLUS_PRICE_ID},
-                  {name: "OPENAI_API_KEY", value: env.OPENAI_API_KEY},
-                  {name: "AZURE_SPEECH_KEY", value: env.AZURE_SPEECH_KEY}
+                "environment": [
+                  {"name": "DEPLOYMENT", "value": "aws"},
+                  {"name": "ENVIRONMENT", "value": "production"},
+                  {"name": "REDIS_HOST", "value": "${REDIS_HOST}"},
+                  {"name": "REDIS_PORT", "value": "${REDIS_PORT}"},
+                  {"name": "REDIS_PASSWORD", "value": "${REDIS_PASSWORD}"},
+                  {"name": "REDIS_USERNAME", "value": "${REDIS_USERNAME}"},
+                  {"name": "FIREBASE_PROJECT_ID", "value": "${FIREBASE_PROJECT_ID}"},
+                  {"name": "STRIPE_SECRET_KEY", "value": "${STRIPE_SECRET_KEY}"},
+                  {"name": "STRIPE_WEBHOOK_SECRET", "value": "${STRIPE_WEBHOOK_SECRET}"},
+                  {"name": "STRIPE_PRO_PRICE_ID", "value": "${STRIPE_PRO_PRICE_ID}"},
+                  {"name": "STRIPE_PLUS_PRICE_ID", "value": "${STRIPE_PLUS_PRICE_ID}"},
+                  {"name": "OPENAI_API_KEY", "value": "${OPENAI_API_KEY}"},
+                  {"name": "AZURE_SPEECH_KEY", "value": "${AZURE_SPEECH_KEY}"}
                 ],
-                logConfiguration: {
-                  logDriver: "awslogs",
-                  options: {
+                "logConfiguration": {
+                  "logDriver": "awslogs",
+                  "options": {
                     "awslogs-group": "/ecs/research-assistant-backend",
-                    "awslogs-region": env.AWS_REGION,
+                    "awslogs-region": "${AWS_REGION}",
                     "awslogs-stream-prefix": "ecs"
                   }
                 },
-                healthCheck: {
-                  command: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],
-                  interval: 30,
-                  timeout: 5,
-                  retries: 3,
-                  startPeriod: 60
+                "healthCheck": {
+                  "command": ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],
+                  "interval": 30,
+                  "timeout": 5,
+                  "retries": 3,
+                  "startPeriod": 60
                 }
               }
             ],
-            family: "research-assistant-backend",
-            executionRoleArn: env.ECS_EXECUTION_ROLE_ARN,
-            taskRoleArn: env.ECS_TASK_ROLE_ARN,
-            networkMode: "awsvpc",
-            requiresCompatibilities: ["FARGATE"],
-            cpu: "1024",
-            memory: "2048",
-            runtimePlatform: {
-              cpuArchitecture: "X86_64",
-              operatingSystemFamily: "LINUX"
+            "family": "research-assistant-backend",
+            "executionRoleArn": "${ECS_EXECUTION_ROLE_ARN}",
+            "taskRoleArn": "${ECS_TASK_ROLE_ARN}",
+            "networkMode": "awsvpc",
+            "requiresCompatibilities": ["FARGATE"],
+            "cpu": "1024",
+            "memory": "2048",
+            "runtimePlatform": {
+              "cpuArchitecture": "X86_64",
+              "operatingSystemFamily": "LINUX"
             }
-          }' > task-definition.json
+          }
+          EOF
           
-          # Register the task definition
+          # Register the task definition using the file
           TASK_DEF=$(aws ecs register-task-definition --cli-input-json file://task-definition.json --output json)
           
           # Extract the task definition ARN
