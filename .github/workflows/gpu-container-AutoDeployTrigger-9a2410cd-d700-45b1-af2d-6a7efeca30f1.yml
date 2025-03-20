@@ -73,32 +73,31 @@ jobs:
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          echo "IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:latest" >> $GITHUB_ENV
           
-      # Create Lambda function from container image
-      - name: Update Lambda function with container image
+      # Remove existing Lambda function if it exists - this is needed to change package type
+      - name: Delete existing Lambda function if it exists
         run: |
-          # Check if function exists
-          if aws lambda get-function --function-name research-assistant-backend &>/dev/null; then
-            # Update existing function
-            aws lambda update-function-code \
-              --function-name research-assistant-backend \
-              --image-uri ${{ steps.login-ecr.outputs.registry }}/research-assistant:latest
-              
-            # Update configuration
-            aws lambda update-function-configuration \
-              --function-name research-assistant-backend \
-              --timeout 300 \
-              --memory-size 2048 \
-              --environment "Variables={DEPLOYMENT=aws,ENVIRONMENT=production,REDIS_HOST=${{ secrets.REDIS_HOST }},REDIS_PORT=${{ secrets.REDIS_PORT }},REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }},REDIS_USERNAME=${{ secrets.REDIS_USERNAME }},FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }},STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }},STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }},STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }},STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }}}"
-          else
-            # Create new function
-            aws lambda create-function \
-              --function-name research-assistant-backend \
-              --package-type Image \
-              --code ImageUri=${{ steps.login-ecr.outputs.registry }}/research-assistant:latest \
-              --role ${{ secrets.LAMBDA_EXECUTION_ROLE }} \
-              --timeout 300 \
-              --memory-size 2048 \
-              --environment "Variables={DEPLOYMENT=aws,ENVIRONMENT=production,REDIS_HOST=${{ secrets.REDIS_HOST }},REDIS_PORT=${{ secrets.REDIS_PORT }},REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }},REDIS_USERNAME=${{ secrets.REDIS_USERNAME }},FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }},STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }},STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }},STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }},STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }}}"
-          fi
+          # Try to delete the function, but don't fail if it doesn't exist
+          aws lambda delete-function --function-name research-assistant-backend || true
+          # Wait to ensure deletion is complete
+          sleep 5
+      
+      # Create new Lambda function with container image
+      - name: Create Lambda function with container image
+        run: |
+          aws lambda create-function \
+            --function-name research-assistant-backend \
+            --package-type Image \
+            --code ImageUri=${{ env.IMAGE_URI }} \
+            --role ${{ secrets.LAMBDA_EXECUTION_ROLE }} \
+            --timeout 300 \
+            --memory-size 2048 \
+            --environment "Variables={DEPLOYMENT=aws,ENVIRONMENT=production,REDIS_HOST=${{ secrets.REDIS_HOST }},REDIS_PORT=${{ secrets.REDIS_PORT }},REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }},REDIS_USERNAME=${{ secrets.REDIS_USERNAME }},FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }},STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }},STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }},STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }},STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }}}"
+
+      # Add function URL configuration
+      - name: Add Lambda function URL
+        run: |
+          aws lambda create-function-url-config \
+            --function-name research-assistant-backend \
+            --auth-type NONE || true
