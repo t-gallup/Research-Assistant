@@ -42,149 +42,38 @@ jobs:
           python -m pip install --upgrade pip
           pip install wheel setuptools
       
-      - name: Build Lambda package
+      # Instead of using layers, include all dependencies in the main Lambda package
+      - name: Build Lambda package with all dependencies
         run: |
           mkdir -p deployment/lambda
           cd backend
           
-          # Create a custom requirements file without layer packages
-          # Exclude packages that are now in layers
-          grep -v -E "boto3|botocore|fastapi|pydantic|uvicorn|mangum|pymupdf|PyPDF2|azure-cognitiveservices-speech|soundfile" requirements.txt > requirements_no_layer.txt
-          
-          # Install only the dependencies not in layers
-          pip install -r requirements_no_layer.txt -t ../deployment/lambda
+          # Install all dependencies
+          pip install -r requirements.txt -t ../deployment/lambda
           
           # Copy application files
           cp -r *.py ../deployment/lambda/
           cp firebase-adminsdk.json ../deployment/lambda/
-          
-          # Clean up unnecessary files
-          cd ../deployment/lambda
-          find . -type d -name "__pycache__" -exec rm -rf {} +
-          find . -type d -name "*.dist-info" -exec rm -rf {} +
-          find . -type d -name "*.egg-info" -exec rm -rf {} +
-          find . -name "*.pyc" -delete
-          
-          # Create zip with only necessary files
-          zip -r ../lambda_function.zip .
-
-      - name: Prepare Core Layer
-        run: |
-          mkdir -p core_layer/python
-          cd backend
-          # Install selected packages to the layer directory
-          pip install boto3 botocore fastapi pydantic uvicorn mangum -t ../core_layer/python
           
           # Clean up unnecessary files to reduce size
-          cd ../core_layer/python
-          find . -type d -name "__pycache__" -exec rm -rf {} +
-          find . -type d -name "*.dist-info" -exec rm -rf {} +
-          find . -type d -name "*.egg-info" -exec rm -rf {} +
-          find . -name "*.pyc" -delete
-          
-          # Create layer zip
-          cd ../
-          zip -r core_layer.zip python/
-        
-          # Upload layer to S3
-          aws s3 cp core_layer.zip s3://${{ secrets.AWS_S3_BUCKET }}/core_layer.zip
-        
-      - name: Prepare Media Layer
-        run: |
-          mkdir -p media_layer/python
-          cd backend
-          # Install selected packages to the layer directory
-          pip install pymupdf PyPDF2 azure-cognitiveservices-speech soundfile -t ../media_layer/python
-          
-          # Clean up unnecessary files
-          cd ../media_layer/python
-          find . -type d -name "__pycache__" -exec rm -rf {} +
-          find . -type d -name "*.dist-info" -exec rm -rf {} +
-          find . -type d -name "*.egg-info" -exec rm -rf {} +
-          find . -name "*.pyc" -delete
-          
-          # Create layer zip
-          cd ../
-          zip -r media_layer.zip python/
-          
-          # Upload layer to S3
-          aws s3 cp media_layer.zip s3://${{ secrets.AWS_S3_BUCKET }}/media_layer.zip
-      
-      - name: Publish Core Layer
-        id: publish-core-layer
-        run: |
-          CORE_LAYER_VERSION=$(aws lambda publish-layer-version \
-            --layer-name research-assistant-core-dependencies \
-            --description "Core dependencies for Research Assistant" \
-            --content S3Bucket=${{ secrets.AWS_S3_BUCKET }},S3Key=core_layer.zip \
-            --compatible-runtimes python3.11 \
-            --query 'LayerVersionArn' \
-            --output text)
-          echo "CORE_LAYER_ARN=$CORE_LAYER_VERSION" >> $GITHUB_OUTPUT
-      
-      - name: Publish Media Layer
-        id: publish-media-layer
-        run: |
-          MEDIA_LAYER_VERSION=$(aws lambda publish-layer-version \
-            --layer-name research-assistant-media-dependencies \
-            --description "Media processing dependencies for Research Assistant" \
-            --content S3Bucket=${{ secrets.AWS_S3_BUCKET }},S3Key=media_layer.zip \
-            --compatible-runtimes python3.11 \
-            --query 'LayerVersionArn' \
-            --output text)
-          echo "MEDIA_LAYER_ARN=$MEDIA_LAYER_VERSION" >> $GITHUB_OUTPUT
-      
-      - name: Build Lambda package without layer dependencies
-        run: |
-          mkdir -p deployment/lambda
-          cd backend
-          
-          # Create a custom requirements file without layer packages
-          cat > requirements_no_layer.txt << EOF
-          # Core dependencies not in layers
-          python-jose[cryptography]
-          python-multipart
-          
-          # Rate limiting and authentication
-          redis
-          fastapi-limiter
-          firebase-admin
-          
-          # ML and AI
-          openai
-          google-genai
-          
-          # Utils
-          beautifulsoup4
-          requests
-          python-dotenv
-          httpx
-          aiohttp
-          
-          # Payments
-          stripe
-          EOF
-          
-          # Install minimal dependencies
-          pip install --no-cache-dir --upgrade -r requirements_no_layer.txt -t ../deployment/lambda
-          
-          # Copy application files
-          cp -r *.py ../deployment/lambda/
-          cp firebase-adminsdk.json ../deployment/lambda/
-          
-          # Clean up unnecessary files
           cd ../deployment/lambda
           find . -type d -name "__pycache__" -exec rm -rf {} +
           find . -type d -name "*.dist-info" -exec rm -rf {} +
+          find . -type d -name "*.egg-info" -exec rm -rf {} +
+          find . -name "*.pyc" -delete
           
-          # Create zip
+          # Remove test directories to save space
+          find . -type d -name "tests" -exec rm -rf {} +
+          find . -type d -name "test" -exec rm -rf {} +
+          
+          # Create zip with all dependencies
           zip -r ../lambda_function.zip .
         
       - name: Upload Lambda package to S3
         run: |
           aws s3 cp deployment/lambda_function.zip s3://${{ secrets.AWS_S3_BUCKET }}/lambda_function.zip
       
-      - name: Deploy to Lambda from S3 with Layers
+      - name: Deploy to Lambda from S3 without Layers
         uses: appleboy/lambda-action@master
         with:
           aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -193,7 +82,6 @@ jobs:
           function_name: research-assistant-backend
           s3_bucket: ${{ secrets.AWS_S3_BUCKET }}
           s3_key: lambda_function.zip
-          layers: ${{ steps.publish-core-layer.outputs.CORE_LAYER_ARN }},${{ steps.publish-media-layer.outputs.MEDIA_LAYER_ARN }}
           environment: |
             DEPLOYMENT=aws
             ENVIRONMENT=production
@@ -208,33 +96,6 @@ jobs:
             STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }}
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
             AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }}
-
-      # Option 2 (Alternative): Deploy backend to ECS
-      # Uncomment this section and comment out the Lambda deployment section above
-      # if you want to use ECS instead of Lambda
-      
-      # - name: Login to Amazon ECR
-      #   id: login-ecr
-      #   uses: aws-actions/amazon-ecr-login@v1
-      #
-      # - name: Build, tag, and push image to Amazon ECR
-      #   id: build-image
-      #   env:
-      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-      #     ECR_REPOSITORY: research-assistant-backend
-      #     IMAGE_TAG: ${{ github.sha }}
-      #   run: |
-      #     docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
-      #     docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-      #     echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-      # 
-      # - name: Deploy to Amazon ECS
-      #   uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-      #   with:
-      #     task-definition: task-definition.json
-      #     service: research-assistant-backend
-      #     cluster: research-assistant
-      #     wait-for-service-stability: true
 
       # Update Amplify environment variable with backend URL
       - name: Update Amplify Environment Variables
