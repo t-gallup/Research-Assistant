@@ -28,11 +28,9 @@ jobs:
       # Update Amplify environment variable with backend URL and Firebase config
       - name: Update Amplify Environment Variables
         run: |
-          aws amplify update-app --app-id ${{ secrets.AWS_AMPLIFY_APP_ID }} \
-            --environment-variables REACT_APP_API_URL=${{ secrets.AWS_INVOKE_URL }},\
-            REACT_APP_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }},\
-            REACT_APP_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }},\
-            REACT_APP_FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }}
+          aws amplify update-app \
+            --app-id ${{ secrets.AWS_AMPLIFY_APP_ID }} \
+            --environment-variables "REACT_APP_API_URL=${{ secrets.AWS_INVOKE_URL }},REACT_APP_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }},REACT_APP_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }},REACT_APP_FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }}"
 
   deploy-backend:
     runs-on: ubuntu-latest
