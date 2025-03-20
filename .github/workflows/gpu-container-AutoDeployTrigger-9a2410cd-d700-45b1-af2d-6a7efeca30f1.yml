@@ -76,11 +76,19 @@ jobs:
 
       - name: Update ECS service
         run: |
-          aws ecs update-service \
-            --cluster ${{ secrets.ECS_CLUSTER }} \
-            --service research-assistant-backend \
-            --task-definition ${{ steps.register-task-def.outputs.task-definition-arn }} \
-            --force-new-deployment
+          # Check if service exists
+          SERVICE_EXISTS=$(aws ecs describe-services --cluster ${{ secrets.ECS_CLUSTER }} --services research-assistant-backend --query "services[?status!='INACTIVE'].status" --output text || echo "")
+          
+          if [ -z "$SERVICE_EXISTS" ]; then
+            echo "Service does not exist or is inactive. The service should be created manually in the AWS console."
+          else
+            echo "Updating existing service..."
+            aws ecs update-service \
+              --cluster ${{ secrets.ECS_CLUSTER }} \
+              --service research-assistant-backend \
+              --task-definition ${{ steps.register-task-def.outputs.task-definition-arn }} \
+              --force-new-deployment
+          fi
 
       # Configure API Gateway if it doesn't exist yet
       - name: Configure API Gateway
@@ -134,12 +142,9 @@ jobs:
       # Update Amplify Environment Variables
       - name: Update Amplify Environment Variables
         run: |
-          aws amplify update-app --app-id ${{ secrets.AWS_AMPLIFY_APP_ID }} \
-            --environment-variables \
-            REACT_APP_API_URL=${{ env.API_URL }},\
-            REACT_APP_FIREBASE_API_KEY=${{ secrets.REACT_APP_FIREBASE_API_KEY }},\
-            REACT_APP_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.REACT_APP_FIREBASE_MESSAGING_SENDER_ID }},\
-            REACT_APP_FIREBASE_APP_ID=${{ secrets.REACT_APP_FIREBASE_APP_ID }}
+          aws amplify update-app \
+            --app-id ${{ secrets.AWS_AMPLIFY_APP_ID }} \
+            --environment-variables "{\"REACT_APP_API_URL\":\"${{ env.API_URL }}\",\"REACT_APP_FIREBASE_API_KEY\":\"${{ secrets.REACT_APP_FIREBASE_API_KEY }}\",\"REACT_APP_FIREBASE_MESSAGING_SENDER_ID\":\"${{ secrets.REACT_APP_FIREBASE_MESSAGING_SENDER_ID }}\",\"REACT_APP_FIREBASE_APP_ID\":\"${{ secrets.REACT_APP_FIREBASE_APP_ID }}\"}"
 
   # Frontend deployment through Amplify
   deploy-frontend:
