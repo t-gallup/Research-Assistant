@@ -48,7 +48,11 @@ class UpgradeRequest(BaseModel):
 
 app = FastAPI()
 
-# Configure CORS
+# Configure CORS - updated to allow the specific origin for the Amplify app
+# Get the origin from environment variable or use a default
+amplify_url = os.getenv('AMPLIFY_URL', 'https://main.d113ulshyf5fsx.amplifyapp.com')
+logger.info(f"Setting up CORS with allowed origin: {amplify_url}")
+
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -57,7 +61,9 @@ origins = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
     "https://research-assistant.app",
-    "https://www.research-assistant.app"
+    "https://www.research-assistant.app",
+    amplify_url,
+    "*"  # Allow all origins temporarily for debugging
 ]
 
 app.add_middleware(
@@ -79,7 +85,16 @@ os.makedirs("audio", exist_ok=True)
 async def debug_middleware(request: Request, call_next):
     logger.debug(f"Incoming request: {request.method} {request.url}")
     logger.debug("Auth header: %s", request.headers.get("Authorization"))
+    
+    # Add CORS headers for preflight requests
     response = await call_next(request)
+    
+    # Add headers to ensure CORS works properly even with Function URLs
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept"
+    
     return response
 
 
