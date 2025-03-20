@@ -55,25 +55,43 @@ jobs:
       
       - name: Fill environment variables in task definition template
         run: |
-          # Make a copy of the template
-          cp .github/task-definition-template.json task-definition-modified.json
+          # Copy the template
+          cp .github/task-definition-template.json task-definition-base.json
           
-          # Replace placeholder values
-          sed -i 's/YOUR_ACCOUNT_ID/${{ secrets.AWS_ACCOUNT_ID }}/g' task-definition-modified.json
-          sed -i 's/YOUR_EXECUTION_ROLE/${{ secrets.ECS_EXECUTION_ROLE_NAME }}/g' task-definition-modified.json
-          sed -i 's/YOUR_TASK_ROLE/${{ secrets.ECS_TASK_ROLE_NAME }}/g' task-definition-modified.json
-          sed -i 's/REDIS_HOST_PLACEHOLDER/${{ secrets.REDIS_HOST }}/g' task-definition-modified.json
-          sed -i 's/REDIS_PORT_PLACEHOLDER/${{ secrets.REDIS_PORT }}/g' task-definition-modified.json
-          sed -i 's/REDIS_PASSWORD_PLACEHOLDER/${{ secrets.REDIS_PASSWORD }}/g' task-definition-modified.json
-          sed -i 's/REDIS_USERNAME_PLACEHOLDER/${{ secrets.REDIS_USERNAME }}/g' task-definition-modified.json
-          sed -i 's/FIREBASE_PROJECT_ID_PLACEHOLDER/${{ secrets.FIREBASE_PROJECT_ID }}/g' task-definition-modified.json
-          sed -i 's/STRIPE_SECRET_KEY_PLACEHOLDER/${{ secrets.STRIPE_SECRET_KEY }}/g' task-definition-modified.json
-          sed -i 's/STRIPE_WEBHOOK_SECRET_PLACEHOLDER/${{ secrets.STRIPE_WEBHOOK_SECRET }}/g' task-definition-modified.json
-          sed -i 's/STRIPE_PRO_PRICE_ID_PLACEHOLDER/${{ secrets.STRIPE_PRO_PRICE_ID }}/g' task-definition-modified.json
-          sed -i 's/STRIPE_PLUS_PRICE_ID_PLACEHOLDER/${{ secrets.STRIPE_PLUS_PRICE_ID }}/g' task-definition-modified.json
-          sed -i 's/OPENAI_API_KEY_PLACEHOLDER/${{ secrets.OPENAI_API_KEY }}/g' task-definition-modified.json
-          sed -i 's/AZURE_SPEECH_KEY_PLACEHOLDER/${{ secrets.AZURE_SPEECH_KEY }}/g' task-definition-modified.json
-          sed -i 's/AWS_REGION_PLACEHOLDER/${{ secrets.AWS_REGION }}/g' task-definition-modified.json
+          # Use jq to safely replace values
+          jq --arg role_arn "${{ secrets.ECS_EXECUTION_ROLE_ARN }}" \
+              --arg task_role "${{ secrets.ECS_TASK_ROLE_ARN }}" \
+              --arg redis_host "${{ secrets.REDIS_HOST }}" \
+              --arg redis_port "${{ secrets.REDIS_PORT }}" \
+              --arg redis_pwd "${{ secrets.REDIS_PASSWORD }}" \
+              --arg redis_user "${{ secrets.REDIS_USERNAME }}" \
+              --arg firebase_id "${{ secrets.FIREBASE_PROJECT_ID }}" \
+              --arg stripe_key "${{ secrets.STRIPE_SECRET_KEY }}" \
+              --arg stripe_hook "${{ secrets.STRIPE_WEBHOOK_SECRET }}" \
+              --arg stripe_pro "${{ secrets.STRIPE_PRO_PRICE_ID }}" \
+              --arg stripe_plus "${{ secrets.STRIPE_PLUS_PRICE_ID }}" \
+              --arg openai_key "${{ secrets.OPENAI_API_KEY }}" \
+              --arg azure_key "${{ secrets.AZURE_SPEECH_KEY }}" \
+              --arg aws_region "${{ secrets.AWS_REGION }}" \
+              '.executionRoleArn = $role_arn | 
+              .taskRoleArn = $task_role | 
+              .containerDefinitions[0].environment = [
+                {name: "DEPLOYMENT", value: "aws"},
+                {name: "ENVIRONMENT", value: "production"},
+                {name: "REDIS_HOST", value: $redis_host},
+                {name: "REDIS_PORT", value: $redis_port},
+                {name: "REDIS_PASSWORD", value: $redis_pwd},
+                {name: "REDIS_USERNAME", value: $redis_user},
+                {name: "FIREBASE_PROJECT_ID", value: $firebase_id},
+                {name: "STRIPE_SECRET_KEY", value: $stripe_key},
+                {name: "STRIPE_WEBHOOK_SECRET", value: $stripe_hook},
+                {name: "STRIPE_PRO_PRICE_ID", value: $stripe_pro},
+                {name: "STRIPE_PLUS_PRICE_ID", value: $stripe_plus},
+                {name: "OPENAI_API_KEY", value: $openai_key},
+                {name: "AZURE_SPEECH_KEY", value: $azure_key}
+              ] |
+              .containerDefinitions[0].logConfiguration.options."awslogs-region" = $aws_region' \
+              task-definition-base.json > task-definition-modified.json
 
         
       - name: Fill in the new image ID in the Amazon ECS task definition
