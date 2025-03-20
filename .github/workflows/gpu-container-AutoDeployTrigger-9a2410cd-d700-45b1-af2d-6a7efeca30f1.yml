@@ -52,6 +52,37 @@ jobs:
           context: ./backend
           push: true
           tags: ${{ steps.login-ecr.outputs.registry }}/research-assistant-backend:${{ github.sha }},${{ steps.login-ecr.outputs.registry }}/research-assistant-backend:latest
+      
+      - name: Fill environment variables in task definition template
+        run: |
+          # Make a copy of the template
+          cp .github/task-definition-template.json task-definition-modified.json
+          
+          # Replace placeholder values
+          sed -i 's/YOUR_ACCOUNT_ID/${{ secrets.AWS_ACCOUNT_ID }}/g' task-definition-modified.json
+          sed -i 's/YOUR_EXECUTION_ROLE/${{ secrets.ECS_EXECUTION_ROLE_NAME }}/g' task-definition-modified.json
+          sed -i 's/YOUR_TASK_ROLE/${{ secrets.ECS_TASK_ROLE_NAME }}/g' task-definition-modified.json
+          sed -i 's/REDIS_HOST_PLACEHOLDER/${{ secrets.REDIS_HOST }}/g' task-definition-modified.json
+          sed -i 's/REDIS_PORT_PLACEHOLDER/${{ secrets.REDIS_PORT }}/g' task-definition-modified.json
+          sed -i 's/REDIS_PASSWORD_PLACEHOLDER/${{ secrets.REDIS_PASSWORD }}/g' task-definition-modified.json
+          sed -i 's/REDIS_USERNAME_PLACEHOLDER/${{ secrets.REDIS_USERNAME }}/g' task-definition-modified.json
+          sed -i 's/FIREBASE_PROJECT_ID_PLACEHOLDER/${{ secrets.FIREBASE_PROJECT_ID }}/g' task-definition-modified.json
+          sed -i 's/STRIPE_SECRET_KEY_PLACEHOLDER/${{ secrets.STRIPE_SECRET_KEY }}/g' task-definition-modified.json
+          sed -i 's/STRIPE_WEBHOOK_SECRET_PLACEHOLDER/${{ secrets.STRIPE_WEBHOOK_SECRET }}/g' task-definition-modified.json
+          sed -i 's/STRIPE_PRO_PRICE_ID_PLACEHOLDER/${{ secrets.STRIPE_PRO_PRICE_ID }}/g' task-definition-modified.json
+          sed -i 's/STRIPE_PLUS_PRICE_ID_PLACEHOLDER/${{ secrets.STRIPE_PLUS_PRICE_ID }}/g' task-definition-modified.json
+          sed -i 's/OPENAI_API_KEY_PLACEHOLDER/${{ secrets.OPENAI_API_KEY }}/g' task-definition-modified.json
+          sed -i 's/AZURE_SPEECH_KEY_PLACEHOLDER/${{ secrets.AZURE_SPEECH_KEY }}/g' task-definition-modified.json
+          sed -i 's/AWS_REGION_PLACEHOLDER/${{ secrets.AWS_REGION }}/g' task-definition-modified.json
+
+        
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition-modified.json
+          container-name: research-assistant-backend
+          image: ${{ steps.login-ecr.outputs.registry }}/research-assistant-backend:latest
 
       # Deploy backend to ECS (for GPU support) instead of Lambda
       - name: Deploy to ECS

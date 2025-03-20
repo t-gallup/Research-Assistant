@@ -1,0 +1,57 @@
+{
+    "family": "research-assistant-backend",
+    "networkMode": "awsvpc",
+    "executionRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/YOUR_EXECUTION_ROLE",
+    "taskRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/YOUR_TASK_ROLE",
+    "containerDefinitions": [
+      {
+        "name": "research-assistant-backend",
+        "image": "PLACEHOLDER_IMAGE_URI",
+        "essential": true,
+        "portMappings": [
+          {
+            "containerPort": 8000,
+            "hostPort": 8000,
+            "protocol": "tcp"
+          }
+        ],
+        "environment": [
+          {"name": "DEPLOYMENT", "value": "aws"},
+          {"name": "ENVIRONMENT", "value": "production"},
+          {"name": "REDIS_HOST", "value": "REDIS_HOST_PLACEHOLDER"},
+          {"name": "REDIS_PORT", "value": "REDIS_PORT_PLACEHOLDER"},
+          {"name": "REDIS_PASSWORD", "value": "REDIS_PASSWORD_PLACEHOLDER"},
+          {"name": "REDIS_USERNAME", "value": "REDIS_USERNAME_PLACEHOLDER"},
+          {"name": "FIREBASE_PROJECT_ID", "value": "FIREBASE_PROJECT_ID_PLACEHOLDER"},
+          {"name": "STRIPE_SECRET_KEY", "value": "STRIPE_SECRET_KEY_PLACEHOLDER"},
+          {"name": "STRIPE_WEBHOOK_SECRET", "value": "STRIPE_WEBHOOK_SECRET_PLACEHOLDER"},
+          {"name": "STRIPE_PRO_PRICE_ID", "value": "STRIPE_PRO_PRICE_ID_PLACEHOLDER"},
+          {"name": "STRIPE_PLUS_PRICE_ID", "value": "STRIPE_PLUS_PRICE_ID_PLACEHOLDER"},
+          {"name": "OPENAI_API_KEY", "value": "OPENAI_API_KEY_PLACEHOLDER"},
+          {"name": "AZURE_SPEECH_KEY", "value": "AZURE_SPEECH_KEY_PLACEHOLDER"}
+        ],
+        "logConfiguration": {
+          "logDriver": "awslogs",
+          "options": {
+            "awslogs-group": "/ecs/research-assistant-backend",
+            "awslogs-region": "AWS_REGION_PLACEHOLDER",
+            "awslogs-stream-prefix": "ecs"
+          }
+        },
+        "healthCheck": {
+          "command": ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],
+          "interval": 30,
+          "timeout": 5,
+          "retries": 3,
+          "startPeriod": 60
+        }
+      }
+    ],
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "1024",
+    "memory": "2048",
+    "runtimePlatform": {
+      "cpuArchitecture": "X86_64",
+      "operatingSystemFamily": "LINUX"
+    }
+  }
