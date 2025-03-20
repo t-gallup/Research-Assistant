@@ -54,9 +54,61 @@ jobs:
           tags: ${{ steps.login-ecr.outputs.registry }}/research-assistant-backend:${{ github.sha }},${{ steps.login-ecr.outputs.registry }}/research-assistant-backend:latest
 
       # Deploy backend to ECS (for GPU support) instead of Lambda
-      - name: Create ECS task definition directly
+      - name: Create ECS task definition
         id: register-task-def
         run: |
+          # Create a temporary file with proper JSON
+          cat > container-defs.json << 'EOF'
+          [
+            {
+              "name": "research-assistant-backend",
+              "image": "${{ steps.login-ecr.outputs.registry }}/research-assistant-backend:latest",
+              "essential": true,
+              "portMappings": [
+                {
+                  "containerPort": 8000,
+                  "hostPort": 8000,
+                  "protocol": "tcp"
+                }
+              ],
+              "environment": [
+                {"name": "DEPLOYMENT", "value": "aws"},
+                {"name": "ENVIRONMENT", "value": "production"},
+                {"name": "REDIS_HOST", "value": "${{ secrets.REDIS_HOST }}"},
+                {"name": "REDIS_PORT", "value": "${{ secrets.REDIS_PORT }}"},
+                {"name": "REDIS_PASSWORD", "value": "${{ secrets.REDIS_PASSWORD }}"},
+                {"name": "REDIS_USERNAME", "value": "${{ secrets.REDIS_USERNAME }}"},
+                {"name": "FIREBASE_PROJECT_ID", "value": "${{ secrets.FIREBASE_PROJECT_ID }}"},
+                {"name": "STRIPE_SECRET_KEY", "value": "${{ secrets.STRIPE_SECRET_KEY }}"},
+                {"name": "STRIPE_WEBHOOK_SECRET", "value": "${{ secrets.STRIPE_WEBHOOK_SECRET }}"},
+                {"name": "STRIPE_PRO_PRICE_ID", "value": "${{ secrets.STRIPE_PRO_PRICE_ID }}"},
+                {"name": "STRIPE_PLUS_PRICE_ID", "value": "${{ secrets.STRIPE_PLUS_PRICE_ID }}"},
+                {"name": "OPENAI_API_KEY", "value": "${{ secrets.OPENAI_API_KEY }}"},
+                {"name": "AZURE_SPEECH_KEY", "value": "${{ secrets.AZURE_SPEECH_KEY }}"}
+              ],
+              "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                  "awslogs-group": "/ecs/research-assistant-backend",
+                  "awslogs-region": "${{ secrets.AWS_REGION }}",
+                  "awslogs-stream-prefix": "ecs"
+                }
+              },
+              "healthCheck": {
+                "command": ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],
+                "interval": 30,
+                "timeout": 5,
+                "retries": 3,
+                "startPeriod": 60
+              }
+            }
+          ]
+          EOF
+          
+          # Process the file to replace variables (heredoc with 'EOF' doesn't expand variables)
+          envsubst < container-defs.json > container-defs-processed.json
+          
+          # Register the task definition using the processed file
           TASK_DEF=$(aws ecs register-task-definition \
             --family research-assistant-backend \
             --execution-role-arn "${{ secrets.ECS_EXECUTION_ROLE_ARN }}" \
@@ -66,50 +118,7 @@ jobs:
             --cpu 1024 \
             --memory 2048 \
             --runtime-platform cpuArchitecture=X86_64,operatingSystemFamily=LINUX \
-            --container-definitions '[
-              {
-                "name": "research-assistant-backend",
-                "image": "${{ steps.login-ecr.outputs.registry }}/research-assistant-backend:latest",
-                "essential": true,
-                "portMappings": [
-                  {
-                    "containerPort": 8000,
-                    "hostPort": 8000,
-                    "protocol": "tcp"
-                  }
-                ],
-                "environment": [
-                  {"name": "DEPLOYMENT", "value": "aws"},
-                  {"name": "ENVIRONMENT", "value": "production"},
-                  {"name": "REDIS_HOST", "value": "${{ secrets.REDIS_HOST }}"},
-                  {"name": "REDIS_PORT", "value": "${{ secrets.REDIS_PORT }}"},
-                  {"name": "REDIS_PASSWORD", "value": "${{ secrets.REDIS_PASSWORD }}"},
-                  {"name": "REDIS_USERNAME", "value": "${{ secrets.REDIS_USERNAME }}"},
-                  {"name": "FIREBASE_PROJECT_ID", "value": "${{ secrets.FIREBASE_PROJECT_ID }}"},
-                  {"name": "STRIPE_SECRET_KEY", "value": "${{ secrets.STRIPE_SECRET_KEY }}"},
-                  {"name": "STRIPE_WEBHOOK_SECRET", "value": "${{ secrets.STRIPE_WEBHOOK_SECRET }}"},
-                  {"name": "STRIPE_PRO_PRICE_ID", "value": "${{ secrets.STRIPE_PRO_PRICE_ID }}"},
-                  {"name": "STRIPE_PLUS_PRICE_ID", "value": "${{ secrets.STRIPE_PLUS_PRICE_ID }}"},
-                  {"name": "OPENAI_API_KEY", "value": "${{ secrets.OPENAI_API_KEY }}"},
-                  {"name": "AZURE_SPEECH_KEY", "value": "${{ secrets.AZURE_SPEECH_KEY }}"}
-                ],
-                "logConfiguration": {
-                  "logDriver": "awslogs",
-                  "options": {
-                    "awslogs-group": "/ecs/research-assistant-backend",
-                    "awslogs-region": "${{ secrets.AWS_REGION }}",
-                    "awslogs-stream-prefix": "ecs"
-                  }
-                },
-                "healthCheck": {
-                  "command": ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],
-                  "interval": 30,
-                  "timeout": 5,
-                  "retries": 3,
-                  "startPeriod": 60
-                }
-              }
-            ]' \
+            --container-definitions file://container-defs-processed.json \
             --output json)
           
           # Extract the task definition ARN
