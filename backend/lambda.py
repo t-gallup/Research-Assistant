@@ -1,9 +1,11 @@
-from mangum import Mangum
 import os
-from main import app
+from mangum import Mangum
 
 # Set environment variables before importing the app
 os.environ['ENVIRONMENT'] = 'production'
 
-# Create the handler
-handler = Mangum(app)
+# Import the app only after setting the environment
+from main import app
+
+# Create the lambda handler
+handler = Mangum(app, lifespan="off")
