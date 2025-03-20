@@ -1,0 +1,12 @@
+{
+  "FunctionName": "research-assistant-backend",
+  "MemorySize": 2048,
+  "Timeout": 300,
+  "Description": "Research Assistant API backend",
+  "Environment": {
+    "Variables": {
+      "DEPLOYMENT": "aws",
+      "ENVIRONMENT": "production"
+    }
+  }
+}
