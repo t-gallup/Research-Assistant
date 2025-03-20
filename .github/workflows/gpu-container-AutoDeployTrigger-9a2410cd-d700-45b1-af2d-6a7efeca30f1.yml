@@ -86,11 +86,52 @@ jobs:
       # Create new Lambda function with container image
       - name: Create Lambda function with container image
         run: |
+          # Create an IAM role for Lambda if one doesn't exist yet
+          LAMBDA_ROLE_ARN=$(aws iam get-role --role-name research-assistant-lambda-role --query 'Role.Arn' --output text 2>/dev/null || echo "")
+          
+          if [ -z "$LAMBDA_ROLE_ARN" ]; then
+            echo "Creating new Lambda execution role..."
+            
+            # Create policy document for trust relationship
+            cat > trust-policy.json << 'EOF'
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "lambda.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole"
+              }
+            ]
+          }
+          EOF
+            
+            # Create the role
+            LAMBDA_ROLE_ARN=$(aws iam create-role \
+              --role-name research-assistant-lambda-role \
+              --assume-role-policy-document file://trust-policy.json \
+              --query 'Role.Arn' --output text)
+              
+            # Attach basic Lambda execution policy
+            aws iam attach-role-policy \
+              --role-name research-assistant-lambda-role \
+              --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+              
+            # Wait for role to propagate
+            echo "Waiting for role to propagate..."
+            sleep 10
+          else
+            echo "Using existing Lambda role: $LAMBDA_ROLE_ARN"
+          fi
+          
+          # Create the Lambda function with the role
           aws lambda create-function \
             --function-name research-assistant-backend \
             --package-type Image \
             --code ImageUri=${{ env.IMAGE_URI }} \
-            --role ${{ secrets.LAMBDA_EXECUTION_ROLE }} \
+            --role "$LAMBDA_ROLE_ARN" \
             --timeout 300 \
             --memory-size 2048 \
             --environment "Variables={DEPLOYMENT=aws,ENVIRONMENT=production,REDIS_HOST=${{ secrets.REDIS_HOST }},REDIS_PORT=${{ secrets.REDIS_PORT }},REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }},REDIS_USERNAME=${{ secrets.REDIS_USERNAME }},FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }},STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }},STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }},STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }},STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }}}"
