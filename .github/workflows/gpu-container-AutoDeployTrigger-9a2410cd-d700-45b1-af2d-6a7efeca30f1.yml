@@ -12,8 +12,31 @@ on:
   workflow_dispatch:
 
 jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Update Amplify environment variable with backend URL and Firebase config
+      - name: Update Amplify Environment Variables
+        run: |
+          aws amplify update-app --app-id ${{ secrets.AWS_AMPLIFY_APP_ID }} \
+            --environment-variables REACT_APP_API_URL=${{ secrets.AWS_INVOKE_URL }},\
+            REACT_APP_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }},\
+            REACT_APP_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }},\
+            REACT_APP_FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }}
+
   deploy-backend:
     runs-on: ubuntu-latest
+    needs: deploy-frontend
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -30,102 +53,54 @@ jobs:
         run: |
           echo '${{ secrets.FIREBASE_ADMIN_SDK_JSON }}' > backend/firebase-adminsdk.json
 
-      # Option 1: Deploy backend to Lambda
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          
-      - name: Install basic dependencies for build environment
-        run: |
-          cd backend
-          python -m pip install --upgrade pip
-          pip install wheel setuptools
+      # Login to ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
 
-      # Optimize the deployment package size
-      - name: Build optimized Lambda package
+      # Create ECR repository if it doesn't exist
+      - name: Create ECR Repository if it doesn't exist
         run: |
-          mkdir -p deployment/lambda
-          cd backend
-          
-          # Install only what's needed
-          pip install --no-cache-dir --upgrade -r requirements.txt --target ../deployment/lambda
-          
-          # Copy application files
-          cp -r *.py ../deployment/lambda/
-          cp firebase-adminsdk.json ../deployment/lambda/
-          
-          # Aggressively clean up to reduce size
-          cd ../deployment/lambda
-          # Remove tests directories
-          find . -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true
-          find . -type d -name "test" -exec rm -rf {} + 2>/dev/null || true
-          # Remove docs
-          find . -type d -name "docs" -exec rm -rf {} + 2>/dev/null || true
-          # Remove examples
-          find . -type d -name "examples" -exec rm -rf {} + 2>/dev/null || true
-          # Remove caches and compiled files
-          find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-          find . -type f -name "*.pyc" -delete
-          find . -type f -name "*.pyo" -delete
-          find . -type f -name "*.pyd" -delete
-          # Remove dist-info and egg-info
-          find . -type d -name "*.dist-info" -exec rm -rf {} + 2>/dev/null || true
-          find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
-          
-          # Create zip
-          zip -r ../lambda_function.zip .
-          
-          # Print package size for debugging
-          du -sh ../lambda_function.zip
-        
-      - name: Upload Lambda package to S3
-        run: |
-          aws s3 cp deployment/lambda_function.zip s3://${{ secrets.AWS_S3_BUCKET }}/lambda_function.zip
-      
-      # Update Lambda configuration with higher memory and timeout
-      - name: Update Lambda Configuration
-        run: |
-          aws lambda update-function-configuration \
-            --function-name research-assistant-backend \
-            --memory-size 2048 \
-            --timeout 300
-      
-      - name: Deploy to Lambda from S3
-        uses: appleboy/lambda-action@master
-        with:
-          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws_region: ${{ secrets.AWS_REGION }}
-          function_name: research-assistant-backend
-          s3_bucket: ${{ secrets.AWS_S3_BUCKET }}
-          s3_key: lambda_function.zip
-          memory_size: 2048
-          timeout: 300
-          environment: |
-            DEPLOYMENT=aws
-            ENVIRONMENT=production
-            REDIS_HOST=${{ secrets.REDIS_HOST }}
-            REDIS_PORT=${{ secrets.REDIS_PORT }}
-            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
-            REDIS_USERNAME=${{ secrets.REDIS_USERNAME }}
-            FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
-            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
-            STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
-            STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }}
-            STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }}
-            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-            AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }}
+          aws ecr describe-repositories --repository-names research-assistant || \
+          aws ecr create-repository --repository-name research-assistant
 
-      # Update Amplify environment variable with backend URL
-      - name: Update Amplify Environment Variables
+      # Build and push Docker image to ECR
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: research-assistant
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          aws amplify update-app --app-id ${{ secrets.AWS_AMPLIFY_APP_ID }} \
-            --environment-variables REACT_APP_API_URL=${{ secrets.AWS_INVOKE_URL }},\
-            REACT_APP_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }},\
-            REACT_APP_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }},\
-            REACT_APP_FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }}
-
-  # Frontend deployment is handled automatically by Amplify
-  # No additional steps needed as Amplify will detect the push to the repository
-  # and trigger a build and deploy based on the amplify.yml configuration
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          
+      # Create Lambda function from container image
+      - name: Update Lambda function with container image
+        run: |
+          # Check if function exists
+          if aws lambda get-function --function-name research-assistant-backend &>/dev/null; then
+            # Update existing function
+            aws lambda update-function-code \
+              --function-name research-assistant-backend \
+              --image-uri ${{ steps.login-ecr.outputs.registry }}/research-assistant:latest
+              
+            # Update configuration
+            aws lambda update-function-configuration \
+              --function-name research-assistant-backend \
+              --timeout 300 \
+              --memory-size 2048 \
+              --environment "Variables={DEPLOYMENT=aws,ENVIRONMENT=production,REDIS_HOST=${{ secrets.REDIS_HOST }},REDIS_PORT=${{ secrets.REDIS_PORT }},REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }},REDIS_USERNAME=${{ secrets.REDIS_USERNAME }},FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }},STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }},STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }},STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }},STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }}}"
+          else
+            # Create new function
+            aws lambda create-function \
+              --function-name research-assistant-backend \
+              --package-type Image \
+              --code ImageUri=${{ steps.login-ecr.outputs.registry }}/research-assistant:latest \
+              --role ${{ secrets.LAMBDA_EXECUTION_ROLE }} \
+              --timeout 300 \
+              --memory-size 2048 \
+              --environment "Variables={DEPLOYMENT=aws,ENVIRONMENT=production,REDIS_HOST=${{ secrets.REDIS_HOST }},REDIS_PORT=${{ secrets.REDIS_PORT }},REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }},REDIS_USERNAME=${{ secrets.REDIS_USERNAME }},FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }},STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }},STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }},STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }},STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }}}"
+          fi
