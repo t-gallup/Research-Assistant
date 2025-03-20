@@ -30,221 +30,181 @@ jobs:
         run: |
           echo '${{ secrets.FIREBASE_ADMIN_SDK_JSON }}' > backend/firebase-adminsdk.json
 
-      # Option 1: Deploy backend to Lambda
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          
-      - name: Install basic dependencies for build environment
-        run: |
-          cd backend
-          python -m pip install --upgrade pip
-          pip install wheel setuptools
-      
-      - name: Build Lambda package
-        run: |
-          mkdir -p deployment/lambda
-          cd backend
-          
-          # Create a custom requirements file without layer packages
-          # Exclude packages that are now in layers
-          grep -v -E "boto3|botocore|fastapi|pydantic|uvicorn|mangum|pymupdf|PyPDF2|azure-cognitiveservices-speech|soundfile" requirements.txt > requirements_no_layer.txt
-          
-          # Install only the dependencies not in layers
-          pip install -r requirements_no_layer.txt -t ../deployment/lambda
-          
-          # Copy application files
-          cp -r *.py ../deployment/lambda/
-          cp firebase-adminsdk.json ../deployment/lambda/
-          
-          # Clean up unnecessary files
-          cd ../deployment/lambda
-          find . -type d -name "__pycache__" -exec rm -rf {} +
-          find . -type d -name "*.dist-info" -exec rm -rf {} +
-          find . -type d -name "*.egg-info" -exec rm -rf {} +
-          find . -name "*.pyc" -delete
-          
-          # Create zip with only necessary files
-          zip -r ../lambda_function.zip .
+      # Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-      - name: Prepare Core Layer
+      # Login to Amazon ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # Create ECR repository if it doesn't exist
+      - name: Create ECR Repository if not exists
         run: |
-          mkdir -p core_layer/python
-          cd backend
-          # Install selected packages to the layer directory
-          pip install boto3 botocore fastapi pydantic uvicorn mangum -t ../core_layer/python
-          
-          # Clean up unnecessary files to reduce size
-          cd ../core_layer/python
-          find . -type d -name "__pycache__" -exec rm -rf {} +
-          find . -type d -name "*.dist-info" -exec rm -rf {} +
-          find . -type d -name "*.egg-info" -exec rm -rf {} +
-          find . -name "*.pyc" -delete
-          
-          # Create layer zip
-          cd ../
-          zip -r core_layer.zip python/
-        
-          # Upload layer to S3
-          aws s3 cp core_layer.zip s3://${{ secrets.AWS_S3_BUCKET }}/core_layer.zip
-        
-      - name: Prepare Media Layer
+          aws ecr describe-repositories --repository-names research-assistant-backend || \
+          aws ecr create-repository --repository-name research-assistant-backend
+
+      # Build and push backend Docker image
+      - name: Build and push backend Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ steps.login-ecr.outputs.registry }}/research-assistant-backend:${{ github.sha }},${{ steps.login-ecr.outputs.registry }}/research-assistant-backend:latest
+
+      # Deploy backend to ECS (for GPU support) instead of Lambda
+      - name: Deploy to ECS
         run: |
-          mkdir -p media_layer/python
-          cd backend
-          # Install selected packages to the layer directory
-          pip install pymupdf PyPDF2 azure-cognitiveservices-speech soundfile -t ../media_layer/python
-          
-          # Clean up unnecessary files
-          cd ../media_layer/python
-          find . -type d -name "__pycache__" -exec rm -rf {} +
-          find . -type d -name "*.dist-info" -exec rm -rf {} +
-          find . -type d -name "*.egg-info" -exec rm -rf {} +
-          find . -name "*.pyc" -delete
-          
-          # Create layer zip
-          cd ../
-          zip -r media_layer.zip python/
-          
-          # Upload layer to S3
-          aws s3 cp media_layer.zip s3://${{ secrets.AWS_S3_BUCKET }}/media_layer.zip
-      
-      - name: Publish Core Layer
-        id: publish-core-layer
-        run: |
-          CORE_LAYER_VERSION=$(aws lambda publish-layer-version \
-            --layer-name research-assistant-core-dependencies \
-            --description "Core dependencies for Research Assistant" \
-            --content S3Bucket=${{ secrets.AWS_S3_BUCKET }},S3Key=core_layer.zip \
-            --compatible-runtimes python3.11 \
-            --query 'LayerVersionArn' \
-            --output text)
-          echo "CORE_LAYER_ARN=$CORE_LAYER_VERSION" >> $GITHUB_OUTPUT
-      
-      - name: Publish Media Layer
-        id: publish-media-layer
-        run: |
-          MEDIA_LAYER_VERSION=$(aws lambda publish-layer-version \
-            --layer-name research-assistant-media-dependencies \
-            --description "Media processing dependencies for Research Assistant" \
-            --content S3Bucket=${{ secrets.AWS_S3_BUCKET }},S3Key=media_layer.zip \
-            --compatible-runtimes python3.11 \
-            --query 'LayerVersionArn' \
-            --output text)
-          echo "MEDIA_LAYER_ARN=$MEDIA_LAYER_VERSION" >> $GITHUB_OUTPUT
-      
-      - name: Build Lambda package without layer dependencies
-        run: |
-          mkdir -p deployment/lambda
-          cd backend
-          
-          # Create a custom requirements file without layer packages
-          cat > requirements_no_layer.txt << EOF
-          # Core dependencies not in layers
-          python-jose[cryptography]
-          python-multipart
-          
-          # Rate limiting and authentication
-          redis
-          fastapi-limiter
-          firebase-admin
-          
-          # ML and AI
-          openai
-          google-genai
-          
-          # Utils
-          beautifulsoup4
-          requests
-          python-dotenv
-          httpx
-          aiohttp
-          
-          # Payments
-          stripe
+          # Create or update ECS task definition
+          cat > task-definition.json << EOF
+          {
+            "family": "research-assistant-backend",
+            "networkMode": "awsvpc",
+            "executionRoleArn": "${{ secrets.ECS_EXECUTION_ROLE_ARN }}",
+            "taskRoleArn": "${{ secrets.ECS_TASK_ROLE_ARN }}",
+            "containerDefinitions": [
+              {
+                "name": "research-assistant-backend",
+                "image": "${{ steps.login-ecr.outputs.registry }}/research-assistant-backend:latest",
+                "essential": true,
+                "portMappings": [
+                  {
+                    "containerPort": 8000,
+                    "hostPort": 8000,
+                    "protocol": "tcp"
+                  }
+                ],
+                "environment": [
+                  {"name": "DEPLOYMENT", "value": "aws"},
+                  {"name": "ENVIRONMENT", "value": "production"},
+                  {"name": "REDIS_HOST", "value": "${{ secrets.REDIS_HOST }}"},
+                  {"name": "REDIS_PORT", "value": "${{ secrets.REDIS_PORT }}"},
+                  {"name": "REDIS_PASSWORD", "value": "${{ secrets.REDIS_PASSWORD }}"},
+                  {"name": "REDIS_USERNAME", "value": "${{ secrets.REDIS_USERNAME }}"},
+                  {"name": "FIREBASE_PROJECT_ID", "value": "${{ secrets.FIREBASE_PROJECT_ID }}"},
+                  {"name": "STRIPE_SECRET_KEY", "value": "${{ secrets.STRIPE_SECRET_KEY }}"},
+                  {"name": "STRIPE_WEBHOOK_SECRET", "value": "${{ secrets.STRIPE_WEBHOOK_SECRET }}"},
+                  {"name": "STRIPE_PRO_PRICE_ID", "value": "${{ secrets.STRIPE_PRO_PRICE_ID }}"},
+                  {"name": "STRIPE_PLUS_PRICE_ID", "value": "${{ secrets.STRIPE_PLUS_PRICE_ID }}"},
+                  {"name": "OPENAI_API_KEY", "value": "${{ secrets.OPENAI_API_KEY }}"},
+                  {"name": "AZURE_SPEECH_KEY", "value": "${{ secrets.AZURE_SPEECH_KEY }}"}
+                ],
+                "logConfiguration": {
+                  "logDriver": "awslogs",
+                  "options": {
+                    "awslogs-group": "/ecs/research-assistant-backend",
+                    "awslogs-region": "${{ secrets.AWS_REGION }}",
+                    "awslogs-stream-prefix": "ecs"
+                  }
+                },
+                "healthCheck": {
+                  "command": ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],
+                  "interval": 30,
+                  "timeout": 5,
+                  "retries": 3,
+                  "startPeriod": 60
+                }
+              }
+            ],
+            "requiresCompatibilities": ["FARGATE"],
+            "cpu": "1024",
+            "memory": "2048",
+            "runtimePlatform": {
+              "cpuArchitecture": "X86_64",
+              "operatingSystemFamily": "LINUX"
+            }
+          }
           EOF
           
-          # Install minimal dependencies
-          pip install --no-cache-dir --upgrade -r requirements_no_layer.txt -t ../deployment/lambda
+          # Register the task definition
+          aws ecs register-task-definition --cli-input-json file://task-definition.json
           
-          # Copy application files
-          cp -r *.py ../deployment/lambda/
-          cp firebase-adminsdk.json ../deployment/lambda/
-          
-          # Clean up unnecessary files
-          cd ../deployment/lambda
-          find . -type d -name "__pycache__" -exec rm -rf {} +
-          find . -type d -name "*.dist-info" -exec rm -rf {} +
-          
-          # Create zip
-          zip -r ../lambda_function.zip .
-        
-      - name: Upload Lambda package to S3
+          # Update the service with the new task definition
+          aws ecs update-service \
+            --cluster ${{ secrets.ECS_CLUSTER }} \
+            --service research-assistant-backend \
+            --task-definition research-assistant-backend \
+            --force-new-deployment
+
+      # Configure API Gateway if it doesn't exist yet
+      - name: Configure API Gateway
         run: |
-          aws s3 cp deployment/lambda_function.zip s3://${{ secrets.AWS_S3_BUCKET }}/lambda_function.zip
-      
-      - name: Deploy to Lambda from S3 with Layers
-        uses: appleboy/lambda-action@master
-        with:
-          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws_region: ${{ secrets.AWS_REGION }}
-          function_name: research-assistant-backend
-          s3_bucket: ${{ secrets.AWS_S3_BUCKET }}
-          s3_key: lambda_function.zip
-          layers: ${{ steps.publish-core-layer.outputs.CORE_LAYER_ARN }},${{ steps.publish-media-layer.outputs.MEDIA_LAYER_ARN }}
-          environment: |
-            DEPLOYMENT=aws
-            ENVIRONMENT=production
-            REDIS_HOST=${{ secrets.REDIS_HOST }}
-            REDIS_PORT=${{ secrets.REDIS_PORT }}
-            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
-            REDIS_USERNAME=${{ secrets.REDIS_USERNAME }}
-            FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
-            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
-            STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
-            STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }}
-            STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }}
-            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-            AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }}
+          # Check if API exists
+          API_ID=$(aws apigateway get-rest-apis --query "items[?name=='research-assistant-api'].id" --output text)
+          
+          if [ -z "$API_ID" ]; then
+            echo "Creating new API Gateway..."
+            API_ID=$(aws apigateway create-rest-api --name research-assistant-api --query "id" --output text)
+            
+            # Get root resource id
+            ROOT_ID=$(aws apigateway get-resources --rest-api-id $API_ID --query "items[?path=='/'].id" --output text)
+            
+            # Create resource
+            RESOURCE_ID=$(aws apigateway create-resource --rest-api-id $API_ID --parent-id $ROOT_ID --path-part "api" --query "id" --output text)
+            
+            # Create ANY method
+            aws apigateway put-method --rest-api-id $API_ID --resource-id $RESOURCE_ID --http-method ANY --authorization-type NONE
+            
+            # Create integration with the NLB
+            aws apigateway put-integration \
+              --rest-api-id $API_ID \
+              --resource-id $RESOURCE_ID \
+              --http-method ANY \
+              --type HTTP_PROXY \
+              --integration-http-method ANY \
+              --uri http://${{ secrets.NLB_DNS }}/api \
+              --connection-type INTERNET
+            
+            # Deploy the API
+            aws apigateway create-deployment --rest-api-id $API_ID --stage-name prod
+            
+            # Enable CORS
+            aws apigateway put-method-response \
+              --rest-api-id $API_ID \
+              --resource-id $RESOURCE_ID \
+              --http-method ANY \
+              --status-code 200 \
+              --response-parameters "method.response.header.Access-Control-Allow-Origin=true"
+            
+            echo "API Gateway created: https://$API_ID.execute-api.${{ secrets.AWS_REGION }}.amazonaws.com/prod"
+          else
+            echo "API Gateway already exists: $API_ID"
+          fi
+          
+          # Store the API URL for frontend config
+          API_URL="https://$API_ID.execute-api.${{ secrets.AWS_REGION }}.amazonaws.com/prod"
+          echo "API_URL=$API_URL" >> $GITHUB_ENV
 
-      # Option 2 (Alternative): Deploy backend to ECS
-      # Uncomment this section and comment out the Lambda deployment section above
-      # if you want to use ECS instead of Lambda
-      
-      # - name: Login to Amazon ECR
-      #   id: login-ecr
-      #   uses: aws-actions/amazon-ecr-login@v1
-      #
-      # - name: Build, tag, and push image to Amazon ECR
-      #   id: build-image
-      #   env:
-      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-      #     ECR_REPOSITORY: research-assistant-backend
-      #     IMAGE_TAG: ${{ github.sha }}
-      #   run: |
-      #     docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
-      #     docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-      #     echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-      # 
-      # - name: Deploy to Amazon ECS
-      #   uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-      #   with:
-      #     task-definition: task-definition.json
-      #     service: research-assistant-backend
-      #     cluster: research-assistant
-      #     wait-for-service-stability: true
-
-      # Update Amplify environment variable with backend URL
+      # Update Amplify Environment Variables
       - name: Update Amplify Environment Variables
         run: |
           aws amplify update-app --app-id ${{ secrets.AWS_AMPLIFY_APP_ID }} \
-            --environment-variables REACT_APP_API_URL=${{ secrets.AWS_INVOKE_URL }}
-            REACT_APP_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }},\
-            REACT_APP_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }},\
-            REACT_APP_FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }}
+            --environment-variables \
+            REACT_APP_API_URL=${{ env.API_URL }},\
+            REACT_APP_FIREBASE_API_KEY=${{ secrets.REACT_APP_FIREBASE_API_KEY }},\
+            REACT_APP_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.REACT_APP_FIREBASE_MESSAGING_SENDER_ID }},\
+            REACT_APP_FIREBASE_APP_ID=${{ secrets.REACT_APP_FIREBASE_APP_ID }}
 
-  # Frontend deployment is handled automatically by Amplify
-  # No additional steps needed as Amplify will detect the push to the repository
-  # and trigger a build and deploy based on the amplify.yml configuration
+  # Frontend deployment through Amplify
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Trigger Amplify rebuild
+      - name: Trigger Amplify rebuild
+        run: |
+          aws amplify start-job \
+            --app-id ${{ secrets.AWS_AMPLIFY_APP_ID }} \
+            --branch-name main \
+            --job-type RELEASE
