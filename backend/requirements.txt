@@ -1,11 +1,10 @@
 # Core dependencies
 fastapi
-uvicorn
-pydantic
-pydantic-settings
-mangum
+uvicorn==0.23.0  # Pinning version for stability
+pydantic>=2.0.0
+mangum>=0.17.0
 
-# Rate limiting and authentication
+# Auth and rate limiting
 redis
 fastapi-limiter
 python-jose[cryptography]
@@ -16,17 +15,15 @@ firebase-admin
 openai
 google-genai
 
-# AWS dependencies
-boto3
-botocore
-
 # Utils
 beautifulsoup4
 requests
 python-dotenv
 httpx
-PyPDF2
 aiohttp
+
+# PDF processing - minimal requirements
+PyPDF2
 pymupdf
 
 # Audio processing
