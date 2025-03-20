@@ -41,39 +41,57 @@ jobs:
           cd backend
           python -m pip install --upgrade pip
           pip install wheel setuptools
-      
-      # Instead of using layers, include all dependencies in the main Lambda package
-      - name: Build Lambda package with all dependencies
+
+      # Optimize the deployment package size
+      - name: Build optimized Lambda package
         run: |
           mkdir -p deployment/lambda
           cd backend
           
-          # Install all dependencies
-          pip install -r requirements.txt -t ../deployment/lambda
+          # Install only what's needed
+          pip install --no-cache-dir --upgrade -r requirements.txt --target ../deployment/lambda
           
           # Copy application files
           cp -r *.py ../deployment/lambda/
           cp firebase-adminsdk.json ../deployment/lambda/
           
-          # Clean up unnecessary files to reduce size
+          # Aggressively clean up to reduce size
           cd ../deployment/lambda
-          find . -type d -name "__pycache__" -exec rm -rf {} +
-          find . -type d -name "*.dist-info" -exec rm -rf {} +
-          find . -type d -name "*.egg-info" -exec rm -rf {} +
-          find . -name "*.pyc" -delete
+          # Remove tests directories
+          find . -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true
+          find . -type d -name "test" -exec rm -rf {} + 2>/dev/null || true
+          # Remove docs
+          find . -type d -name "docs" -exec rm -rf {} + 2>/dev/null || true
+          # Remove examples
+          find . -type d -name "examples" -exec rm -rf {} + 2>/dev/null || true
+          # Remove caches and compiled files
+          find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+          find . -type f -name "*.pyc" -delete
+          find . -type f -name "*.pyo" -delete
+          find . -type f -name "*.pyd" -delete
+          # Remove dist-info and egg-info
+          find . -type d -name "*.dist-info" -exec rm -rf {} + 2>/dev/null || true
+          find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
           
-          # Remove test directories to save space
-          find . -type d -name "tests" -exec rm -rf {} +
-          find . -type d -name "test" -exec rm -rf {} +
-          
-          # Create zip with all dependencies
+          # Create zip
           zip -r ../lambda_function.zip .
+          
+          # Print package size for debugging
+          du -sh ../lambda_function.zip
         
       - name: Upload Lambda package to S3
         run: |
           aws s3 cp deployment/lambda_function.zip s3://${{ secrets.AWS_S3_BUCKET }}/lambda_function.zip
       
-      - name: Deploy to Lambda from S3 without Layers
+      # Update Lambda configuration with higher memory and timeout
+      - name: Update Lambda Configuration
+        run: |
+          aws lambda update-function-configuration \
+            --function-name research-assistant-backend \
+            --memory-size 2048 \
+            --timeout 300
+      
+      - name: Deploy to Lambda from S3
         uses: appleboy/lambda-action@master
         with:
           aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -82,6 +100,8 @@ jobs:
           function_name: research-assistant-backend
           s3_bucket: ${{ secrets.AWS_S3_BUCKET }}
           s3_key: lambda_function.zip
+          memory_size: 2048
+          timeout: 300
           environment: |
             DEPLOYMENT=aws
             ENVIRONMENT=production
