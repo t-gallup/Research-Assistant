@@ -52,75 +52,21 @@ jobs:
           context: ./backend
           push: true
           tags: ${{ steps.login-ecr.outputs.registry }}/research-assistant-backend:${{ github.sha }},${{ steps.login-ecr.outputs.registry }}/research-assistant-backend:latest
-      
-      - name: Fill environment variables in task definition template
-        run: |
-          # Copy the template
-          cp .github/task-definition-template.json task-definition-base.json
-          
-          # Use jq to safely replace values
-          jq --arg role_arn "${{ secrets.ECS_EXECUTION_ROLE_ARN }}" \
-              --arg task_role "${{ secrets.ECS_TASK_ROLE_ARN }}" \
-              --arg redis_host "${{ secrets.REDIS_HOST }}" \
-              --arg redis_port "${{ secrets.REDIS_PORT }}" \
-              --arg redis_pwd "${{ secrets.REDIS_PASSWORD }}" \
-              --arg redis_user "${{ secrets.REDIS_USERNAME }}" \
-              --arg firebase_id "${{ secrets.FIREBASE_PROJECT_ID }}" \
-              --arg stripe_key "${{ secrets.STRIPE_SECRET_KEY }}" \
-              --arg stripe_hook "${{ secrets.STRIPE_WEBHOOK_SECRET }}" \
-              --arg stripe_pro "${{ secrets.STRIPE_PRO_PRICE_ID }}" \
-              --arg stripe_plus "${{ secrets.STRIPE_PLUS_PRICE_ID }}" \
-              --arg openai_key "${{ secrets.OPENAI_API_KEY }}" \
-              --arg azure_key "${{ secrets.AZURE_SPEECH_KEY }}" \
-              --arg aws_region "${{ secrets.AWS_REGION }}" \
-              '.executionRoleArn = $role_arn | 
-              .taskRoleArn = $task_role | 
-              .containerDefinitions[0].environment = [
-                {name: "DEPLOYMENT", value: "aws"},
-                {name: "ENVIRONMENT", value: "production"},
-                {name: "REDIS_HOST", value: $redis_host},
-                {name: "REDIS_PORT", value: $redis_port},
-                {name: "REDIS_PASSWORD", value: $redis_pwd},
-                {name: "REDIS_USERNAME", value: $redis_user},
-                {name: "FIREBASE_PROJECT_ID", value: $firebase_id},
-                {name: "STRIPE_SECRET_KEY", value: $stripe_key},
-                {name: "STRIPE_WEBHOOK_SECRET", value: $stripe_hook},
-                {name: "STRIPE_PRO_PRICE_ID", value: $stripe_pro},
-                {name: "STRIPE_PLUS_PRICE_ID", value: $stripe_plus},
-                {name: "OPENAI_API_KEY", value: $openai_key},
-                {name: "AZURE_SPEECH_KEY", value: $azure_key}
-              ] |
-              .containerDefinitions[0].logConfiguration.options."awslogs-region" = $aws_region' \
-              task-definition-base.json > task-definition-modified.json
-      
-      - name: Debug task definition
-        run: |
-          echo "Checking JSON validity..."
-          echo "----- BEGIN JSON FILE -----"
-          cat task-definition-modified.json
-          echo "----- END JSON FILE -----"
-          echo "Validating with jq..."
-          jq . task-definition-modified.json || echo "JSON validation failed"
-        
-      - name: Fill in the new image ID in the Amazon ECS task definition
-        id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: task-definition-modified.json
-          container-name: research-assistant-backend
-          image: ${{ steps.login-ecr.outputs.registry }}/research-assistant-backend:latest
 
       # Deploy backend to ECS (for GPU support) instead of Lambda
-      - name: Deploy to ECS
+      - name: Create ECS task definition directly
+        id: register-task-def
         run: |
-          # Create or update ECS task definition
-          cat > task-definition.json << EOF
-          {
-            "family": "research-assistant-backend",
-            "networkMode": "awsvpc",
-            "executionRoleArn": "${{ secrets.ECS_EXECUTION_ROLE_ARN }}",
-            "taskRoleArn": "${{ secrets.ECS_TASK_ROLE_ARN }}",
-            "containerDefinitions": [
+          TASK_DEF=$(aws ecs register-task-definition \
+            --family research-assistant-backend \
+            --execution-role-arn "${{ secrets.ECS_EXECUTION_ROLE_ARN }}" \
+            --task-role-arn "${{ secrets.ECS_TASK_ROLE_ARN }}" \
+            --network-mode awsvpc \
+            --requires-compatibilities FARGATE \
+            --cpu 1024 \
+            --memory 2048 \
+            --runtime-platform cpuArchitecture=X86_64,operatingSystemFamily=LINUX \
+            --container-definitions '[
               {
                 "name": "research-assistant-backend",
                 "image": "${{ steps.login-ecr.outputs.registry }}/research-assistant-backend:latest",
@@ -163,25 +109,19 @@ jobs:
                   "startPeriod": 60
                 }
               }
-            ],
-            "requiresCompatibilities": ["FARGATE"],
-            "cpu": "1024",
-            "memory": "2048",
-            "runtimePlatform": {
-              "cpuArchitecture": "X86_64",
-              "operatingSystemFamily": "LINUX"
-            }
-          }
-          EOF
+            ]' \
+            --output json)
           
-          # Register the task definition
-          aws ecs register-task-definition --cli-input-json file://task-definition.json
-          
-          # Update the service with the new task definition
+          # Extract the task definition ARN
+          TASK_DEF_ARN=$(echo $TASK_DEF | jq -r '.taskDefinition.taskDefinitionArn')
+          echo "task-definition-arn=$TASK_DEF_ARN" >> $GITHUB_OUTPUT
+
+      - name: Update ECS service
+        run: |
           aws ecs update-service \
             --cluster ${{ secrets.ECS_CLUSTER }} \
             --service research-assistant-backend \
-            --task-definition research-assistant-backend \
+            --task-definition ${{ steps.register-task-def.outputs.task-definition-arn }} \
             --force-new-deployment
 
       # Configure API Gateway if it doesn't exist yet
