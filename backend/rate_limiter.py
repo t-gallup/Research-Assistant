@@ -6,6 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class RateLimiter:
     def __init__(self):
         redis_host = 'localhost' if os.getenv('ENVIRONMENT') != 'production' else os.getenv('REDIS_HOST')
