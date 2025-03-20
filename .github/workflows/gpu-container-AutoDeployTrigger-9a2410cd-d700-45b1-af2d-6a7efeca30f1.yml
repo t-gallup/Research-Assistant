@@ -58,7 +58,7 @@ jobs:
         id: register-task-def
         run: |
           # Create a temporary file with proper JSON
-          cat > container-defs.json << 'EOF'
+          cat > container-defs.json << EOF
           [
             {
               "name": "research-assistant-backend",
@@ -105,10 +105,7 @@ jobs:
           ]
           EOF
           
-          # Process the file to replace variables (heredoc with 'EOF' doesn't expand variables)
-          envsubst < container-defs.json > container-defs-processed.json
-          
-          # Register the task definition using the processed file
+          # Register the task definition directly since variables are already expanded in the heredoc
           TASK_DEF=$(aws ecs register-task-definition \
             --family research-assistant-backend \
             --execution-role-arn "${{ secrets.ECS_EXECUTION_ROLE_ARN }}" \
@@ -118,7 +115,7 @@ jobs:
             --cpu 1024 \
             --memory 2048 \
             --runtime-platform cpuArchitecture=X86_64,operatingSystemFamily=LINUX \
-            --container-definitions file://container-defs-processed.json \
+            --container-definitions file://container-defs.json \
             --output json)
           
           # Extract the task definition ARN
