@@ -1,57 +1,57 @@
 {
-    "family": "research-assistant-backend",
-    "networkMode": "awsvpc",
-    "executionRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/YOUR_EXECUTION_ROLE",
-    "taskRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/YOUR_TASK_ROLE",
-    "containerDefinitions": [
-      {
-        "name": "research-assistant-backend",
-        "image": "PLACEHOLDER_IMAGE_URI",
-        "essential": true,
-        "portMappings": [
-          {
-            "containerPort": 8000,
-            "hostPort": 8000,
-            "protocol": "tcp"
-          }
-        ],
-        "environment": [
-          {"name": "DEPLOYMENT", "value": "aws"},
-          {"name": "ENVIRONMENT", "value": "production"},
-          {"name": "REDIS_HOST", "value": "REDIS_HOST_PLACEHOLDER"},
-          {"name": "REDIS_PORT", "value": "REDIS_PORT_PLACEHOLDER"},
-          {"name": "REDIS_PASSWORD", "value": "REDIS_PASSWORD_PLACEHOLDER"},
-          {"name": "REDIS_USERNAME", "value": "REDIS_USERNAME_PLACEHOLDER"},
-          {"name": "FIREBASE_PROJECT_ID", "value": "FIREBASE_PROJECT_ID_PLACEHOLDER"},
-          {"name": "STRIPE_SECRET_KEY", "value": "STRIPE_SECRET_KEY_PLACEHOLDER"},
-          {"name": "STRIPE_WEBHOOK_SECRET", "value": "STRIPE_WEBHOOK_SECRET_PLACEHOLDER"},
-          {"name": "STRIPE_PRO_PRICE_ID", "value": "STRIPE_PRO_PRICE_ID_PLACEHOLDER"},
-          {"name": "STRIPE_PLUS_PRICE_ID", "value": "STRIPE_PLUS_PRICE_ID_PLACEHOLDER"},
-          {"name": "OPENAI_API_KEY", "value": "OPENAI_API_KEY_PLACEHOLDER"},
-          {"name": "AZURE_SPEECH_KEY", "value": "AZURE_SPEECH_KEY_PLACEHOLDER"}
-        ],
-        "logConfiguration": {
-          "logDriver": "awslogs",
-          "options": {
-            "awslogs-group": "/ecs/research-assistant-backend",
-            "awslogs-region": "AWS_REGION_PLACEHOLDER",
-            "awslogs-stream-prefix": "ecs"
-          }
-        },
-        "healthCheck": {
-          "command": ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],
-          "interval": 30,
-          "timeout": 5,
-          "retries": 3,
-          "startPeriod": 60
+  "family": "research-assistant-backend",
+  "networkMode": "awsvpc",
+  "executionRoleArn": "PLACEHOLDER_EXECUTION_ROLE_ARN",
+  "taskRoleArn": "PLACEHOLDER_TASK_ROLE_ARN",
+  "containerDefinitions": [
+    {
+      "name": "research-assistant-backend",
+      "image": "PLACEHOLDER_IMAGE_URI",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "hostPort": 8000,
+          "protocol": "tcp"
         }
+      ],
+      "environment": [
+        {"name": "DEPLOYMENT", "value": "aws"},
+        {"name": "ENVIRONMENT", "value": "production"},
+        {"name": "REDIS_HOST", "value": "PLACEHOLDER_REDIS_HOST"},
+        {"name": "REDIS_PORT", "value": "PLACEHOLDER_REDIS_PORT"},
+        {"name": "REDIS_PASSWORD", "value": "PLACEHOLDER_REDIS_PASSWORD"},
+        {"name": "REDIS_USERNAME", "value": "PLACEHOLDER_REDIS_USERNAME"},
+        {"name": "FIREBASE_PROJECT_ID", "value": "PLACEHOLDER_FIREBASE_PROJECT_ID"},
+        {"name": "STRIPE_SECRET_KEY", "value": "PLACEHOLDER_STRIPE_SECRET_KEY"},
+        {"name": "STRIPE_WEBHOOK_SECRET", "value": "PLACEHOLDER_STRIPE_WEBHOOK_SECRET"},
+        {"name": "STRIPE_PRO_PRICE_ID", "value": "PLACEHOLDER_STRIPE_PRO_PRICE_ID"},
+        {"name": "STRIPE_PLUS_PRICE_ID", "value": "PLACEHOLDER_STRIPE_PLUS_PRICE_ID"},
+        {"name": "OPENAI_API_KEY", "value": "PLACEHOLDER_OPENAI_API_KEY"},
+        {"name": "AZURE_SPEECH_KEY", "value": "PLACEHOLDER_AZURE_SPEECH_KEY"}
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/research-assistant-backend",
+          "awslogs-region": "PLACEHOLDER_AWS_REGION",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
       }
-    ],
-    "requiresCompatibilities": ["FARGATE"],
-    "cpu": "1024",
-    "memory": "2048",
-    "runtimePlatform": {
-      "cpuArchitecture": "X86_64",
-      "operatingSystemFamily": "LINUX"
     }
+  ],
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
   }
+}
