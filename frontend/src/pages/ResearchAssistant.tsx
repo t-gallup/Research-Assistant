@@ -19,7 +19,9 @@ import {
 import { Alert, AlertTitle, AlertDescription } from "../components/Alert";
 import { getAuth } from 'firebase/auth';
 
-const BASE_URL = "http://localhost:8000";
+// Use environment variable for API URL with fallback to localhost
+const BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+console.log("Using API URL:", BASE_URL); // Debug logging
 
 const ResearchAssistant = () => {
   const [url, setUrl] = useState("");
@@ -65,6 +67,7 @@ const ResearchAssistant = () => {
       }
 
       const token = await user.getIdToken();
+      console.log("Calling API at:", `${BASE_URL}/api/generate-qna`); // Debug logging
 
       // Q&A Generation
       const qnaResponse = await fetch(`${BASE_URL}/api/generate-qna`, {
