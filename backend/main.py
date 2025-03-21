@@ -70,14 +70,26 @@ async def debug_middleware(request: Request, call_next):
     logger.debug(f"Incoming request: {request.method} {request.url}")
     logger.debug(f"Headers: {request.headers}")
     
+    # Handle preflight OPTIONS requests immediately
+    if request.method == "OPTIONS":
+        logger.debug("Handling OPTIONS request")
+        response = JSONResponse(content={"detail": "OK"})
+        # Add CORS headers
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, X-Requested-With"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Max-Age"] = "86400"
+        return response
+    
     # Process the request
     response = await call_next(request)
     
     # Add CORS headers to every response
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Credentials"] = "true"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, X-Requested-With"
     
     # Log response
     logger.debug(f"Response status: {response.status_code}")
