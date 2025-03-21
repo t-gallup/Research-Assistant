@@ -50,6 +50,32 @@ jobs:
       - name: Setup Firebase Credentials
         run: |
           echo '${{ secrets.FIREBASE_ADMIN_SDK_JSON }}' > backend/firebase-adminsdk.json
+    
+      # Set up Redis connection - create a free Redis database
+      - name: Setup Redis Database
+        id: setup-redis
+        run: |
+          # Check if any existing Redis exists by checking for environment variable
+          if [ -z "${{ secrets.REDIS_HOST }}" ]; then
+            echo "Setting up a new Redis database using local Docker container"
+            
+            # Set up a local Redis service just for testing
+            # This ensures we have a Redis instance even if setup fails
+            echo "REDIS_HOST=localhost" >> $GITHUB_ENV
+            echo "REDIS_PORT=6379" >> $GITHUB_ENV
+            echo "REDIS_PASSWORD=" >> $GITHUB_ENV
+            echo "REDIS_USERNAME=" >> $GITHUB_ENV
+            
+            # Start local Redis service
+            docker run -d --name redis -p 6379:6379 redis:alpine
+          else
+            echo "Using existing Redis configuration"
+            # Use the existing Redis configuration
+            echo "REDIS_HOST=${{ secrets.REDIS_HOST }}" >> $GITHUB_ENV
+            echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> $GITHUB_ENV
+            echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> $GITHUB_ENV
+            echo "REDIS_USERNAME=${{ secrets.REDIS_USERNAME }}" >> $GITHUB_ENV
+          fi
 
       # Login to ECR
       - name: Login to Amazon ECR
@@ -121,12 +147,13 @@ jobs:
               
             # Wait for role to propagate
             echo "Waiting for role to propagate..."
-            sleep 10
+            sleep 15
           else
             echo "Using existing Lambda role: $LAMBDA_ROLE_ARN"
           fi
           
           # Create the Lambda function with the role
+          echo "Creating Lambda function with role: $LAMBDA_ROLE_ARN"
           aws lambda create-function \
             --function-name research-assistant-backend \
             --package-type Image \
@@ -134,11 +161,28 @@ jobs:
             --role "$LAMBDA_ROLE_ARN" \
             --timeout 300 \
             --memory-size 2048 \
-            --environment "Variables={DEPLOYMENT=aws,ENVIRONMENT=production,REDIS_HOST=${{ secrets.REDIS_HOST }},REDIS_PORT=${{ secrets.REDIS_PORT }},REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }},REDIS_USERNAME=${{ secrets.REDIS_USERNAME }},FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }},STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }},STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }},STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }},STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }}}"
+            --environment "Variables={DEPLOYMENT=aws,ENVIRONMENT=production,REDIS_HOST=${{ env.REDIS_HOST }},REDIS_PORT=${{ env.REDIS_PORT }},REDIS_PASSWORD=${{ env.REDIS_PASSWORD }},REDIS_USERNAME=${{ env.REDIS_USERNAME }},FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }},STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }},STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }},STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }},STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }},AMPLIFY_URL=https://main.d113ulshyf5fsx.amplifyapp.com}"
 
-      # Add function URL configuration
-      - name: Add Lambda function URL
+      # Add function URL configuration and add permissions for it
+      - name: Add Lambda function URL with public access
         run: |
+          # Create function URL with no auth
           aws lambda create-function-url-config \
             --function-name research-assistant-backend \
-            --auth-type NONE || true
+            --auth-type NONE \
+            --cors "{\"AllowOrigins\":[\"*\"],\"AllowMethods\":[\"*\"],\"AllowHeaders\":[\"*\"],\"ExposeHeaders\":[\"*\"],\"MaxAge\":86400}" || true
+            
+          # Add public access permission
+          aws lambda add-permission \
+            --function-name research-assistant-backend \
+            --action lambda:InvokeFunctionUrl \
+            --statement-id FunctionURLAllowPublicAccess \
+            --principal "*" \
+            --function-url-auth-type NONE || true
+          
+          # Get the function URL
+          FUNCTION_URL=$(aws lambda get-function-url-config \
+            --function-name research-assistant-backend \
+            --query 'FunctionUrl' --output text)
+            
+          echo "Lambda Function URL: $FUNCTION_URL"
