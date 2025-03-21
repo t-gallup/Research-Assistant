@@ -1,6 +1,8 @@
 import { getAuth } from 'firebase/auth';
 
+// Use environment variable for API URL with fallback
 const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+console.log("QNA Service using API URL:", BASE_URL); // Debug logging
 
 export interface QnAResponse {
   articleTitle: string;
@@ -19,11 +21,12 @@ export const generateQnA = async (url: string): Promise<QnAResponse> => {
   const auth = getAuth();
   const user = auth.currentUser;
 
-  const token = user ? await user.getIdToken() : null;
-
-  if (!token) {
+  if (!user) {
     throw new Error('Not authenticated');
   }
+  
+  const token = await user.getIdToken();
+  console.log(`Making API request to ${BASE_URL}/api/generate-qna`); // Debug logging
   
   const response = await fetch(`${BASE_URL}/api/generate-qna`, {
     method: 'POST',
@@ -36,9 +39,16 @@ export const generateQnA = async (url: string): Promise<QnAResponse> => {
     body: JSON.stringify({ url }),
   });
 
+  console.log(`API response status: ${response.status}`); // Debug logging
+  
   if (!response.ok) {
+    console.error(`API error: ${response.status} ${response.statusText}`);
+    const errorText = await response.text();
+    console.error(`Error details: ${errorText}`);
     throw new Error('Failed to generate content');
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log('Successfully received API response'); // Debug logging
+  return data;
 };
