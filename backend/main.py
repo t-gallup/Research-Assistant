@@ -70,12 +70,25 @@ async def debug_middleware(request: Request, call_next):
     logger.debug(f"Incoming request: {request.method} {request.url}")
     logger.debug(f"Headers: {request.headers}")
     
+    origin = request.headers.get("Origin", "")
+
+    allowed_origins = [
+        "https://main.d113ulshyf5fsx.amplifyapp.com", 
+        "https://research-assistant.app",
+        "https://www.research-assistant.app"
+    ]
+
+    if origin in allowed_origins:
+        cors_origin = origin
+    else:
+        cors_origin = allowed_origins[0]
+    
     # Handle preflight OPTIONS requests immediately
     if request.method == "OPTIONS":
         logger.debug("Handling OPTIONS request")
         response = JSONResponse(content={"detail": "OK"})
         # Add CORS headers
-        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Origin"] = cors_origin
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
         response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, X-Requested-With"
         response.headers["Access-Control-Allow-Credentials"] = "true"
