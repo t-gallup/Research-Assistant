@@ -7,6 +7,10 @@ import { Button } from '../components/Button';
 import Navbar from '../components/Navbar';
 import { format, parseISO } from 'date-fns';
 
+// Use environment variable for API URL with fallback to localhost
+const BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+console.log("Usage page using API URL:", BASE_URL); // Debug logging
+
 const Usage = () => {
   const navigate = useNavigate();
   const [usageData, setUsageData] = useState([]);
@@ -42,13 +46,19 @@ const Usage = () => {
         }
 
         const idToken = await user.getIdToken();
-        const response = await fetch(`${process.env.REACT_APP_API_URL || ''}/api/usage/stats`, {
+        console.log("Fetching usage stats from:", `${BASE_URL}/api/usage/stats`); // Debug logging
+        
+        const response = await fetch(`${BASE_URL}/api/usage/stats`, {
           headers: {
             'Authorization': `Bearer ${idToken}`,
             'Accept': 'application/json'
           },
-          signal: fetchController.current.signal
+          signal: fetchController.current.signal,
+          credentials: 'include', // Include credentials
         });
+
+        console.log("Response status:", response.status); // Debug logging
+        console.log("Response headers:", Object.fromEntries([...response.headers])); // Debug logging
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -62,6 +72,8 @@ const Usage = () => {
         }
 
         const data = await response.json();
+        console.log("Received usage data:", data); // Debug logging
+        
         setUsageData(data.daily_usage || []);
         setQuotaInfo({
           total_limit: data.total_limit / 2 || 0,
@@ -100,20 +112,31 @@ const Usage = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="text-gray-300">Loading usage data...</div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-blue-900">
+        <Navbar />
+        <div className="container mx-auto p-6">
+          <div className="text-gray-300">Loading usage data...</div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto p-6">
-        <Alert variant="destructive">
-          <AlertDescription>
-            Error loading usage data: {error}
-          </AlertDescription>
-        </Alert>
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-blue-900">
+        <Navbar />
+        <div className="container mx-auto p-6">
+          <Alert variant="destructive">
+            <AlertDescription>
+              Error loading usage data: {error}
+            </AlertDescription>
+          </Alert>
+          <div className="mt-4">
+            <Button onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
