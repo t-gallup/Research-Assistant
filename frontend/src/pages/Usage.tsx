@@ -58,7 +58,13 @@ const Usage = () => {
         });
 
         console.log("Response status:", response.status); // Debug logging
-        console.log("Response headers:", Object.fromEntries([...response.headers])); // Debug logging
+        
+        // Fix TypeScript error - correctly handle Headers object
+        const headerEntries: [string, string][] = [];
+        response.headers.forEach((value, key) => {
+          headerEntries.push([key, value]);
+        });
+        console.log("Response headers:", Object.fromEntries(headerEntries)); // Debug logging
 
         if (!response.ok) {
           const errorText = await response.text();
