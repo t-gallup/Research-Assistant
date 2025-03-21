@@ -23,20 +23,19 @@ def setup_cors(app):
         "https://research-assistant.app",
         "https://www.research-assistant.app",
         amplify_url,
-        "https://main.d113ulshyf5fsx.amplifyapp.com",  # Explicitly add Amplify domain
-        "*"  # Allow all origins in development - remove in production
+        "https://main.d113ulshyf5fsx.amplifyapp.com"
     ]
     
     # Add the CORS middleware
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
-        allow_origin_regex=".*",  # Allow all origins via regex
+        allow_origin_regex=None,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
         expose_headers=["*"],
-        max_age=86400,  # Cache preflight requests for 24 hours
+        max_age=86400,
     )
     
     # Log CORS settings

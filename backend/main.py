@@ -78,10 +78,7 @@ async def debug_middleware(request: Request, call_next):
         "https://www.research-assistant.app"
     ]
 
-    if origin in allowed_origins:
-        cors_origin = origin
-    else:
-        cors_origin = allowed_origins[0]
+    cors_origin = origin if origin in allowed_origins else None
     
     # Handle preflight OPTIONS requests immediately
     if request.method == "OPTIONS":
