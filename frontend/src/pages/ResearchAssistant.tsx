@@ -73,8 +73,9 @@ const ResearchAssistant = () => {
       const qnaResponse = await fetch(`${BASE_URL}/api/generate-qna`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
         },
         credentials: 'same-origin',
         body: JSON.stringify({ url }),
@@ -166,8 +167,9 @@ const ResearchAssistant = () => {
                 const qnaResponse = await fetch(`${BASE_URL}/api/generate-qna`, {
                     method: "POST",
                     headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
                     },
                     credentials: 'same-origin',
                     body: JSON.stringify({ url: urlParam }),
@@ -197,8 +199,9 @@ const ResearchAssistant = () => {
                 const audioResponse = await fetch(`${BASE_URL}/api/generate-audio`, {
                     method: "POST",
                     headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
                     },
                     credentials: 'same-origin',
                     body: JSON.stringify({ url: urlParam }),

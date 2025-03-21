@@ -51,10 +51,10 @@ const Usage = () => {
         const response = await fetch(`${BASE_URL}/api/usage/stats`, {
           headers: {
             'Authorization': `Bearer ${idToken}`,
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
           },
-          signal: fetchController.current.signal,
-          credentials: 'include', // Include credentials
+          credentials: 'same-origin',
         });
 
         console.log("Response status:", response.status); // Debug logging

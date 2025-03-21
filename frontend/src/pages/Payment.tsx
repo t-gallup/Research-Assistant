@@ -56,8 +56,9 @@ const Payment = () => {
           `${process.env.REACT_APP_API_URL || ""}/api/usage/stats`,
           {
             headers: {
-              Authorization: `Bearer ${idToken}`,
-              Accept: "application/json",
+              'Authorization': `Bearer ${idToken}`,
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
             },
           }
         );
@@ -100,8 +101,9 @@ const Payment = () => {
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${idToken}`,
-            "Content-Type": "application/json",
+            'Authorization': `Bearer ${idToken}`,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ plan: planName }),
         }

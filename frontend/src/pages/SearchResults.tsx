@@ -43,8 +43,11 @@ const SearchResults = () => {
                     `${process.env.REACT_APP_API_URL}/api/search?q=${encodeURIComponent(searchQuery)}`,
                     {
                         headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
+                            'Authorization': `Bearer ${token}`,
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'same-origin'
                     }
                 );
                 if (!response.ok) {
@@ -73,7 +76,6 @@ const SearchResults = () => {
         try {
             const idToken = await user.getIdToken();
             // Store the token or pass it along with the navigation
-            // You might want to store this in localStorage or context
             localStorage.setItem('authToken', idToken);
             
             navigate(`/?url=${encodeURIComponent(url)}&autoAnalyze=true`);
