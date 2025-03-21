@@ -1,5 +1,4 @@
 from fastapi import FastAPI, HTTPException, Request, Depends
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import rag_pipeline as rp
@@ -14,9 +13,12 @@ from config import load_secrets
 from firebase_auth import init_firebase, verify_firebase_token
 from search_routes import router as search_router
 from datetime import datetime
+from cors_middleware import setup_cors, CustomCORSMiddleware
 
+# Load environment variables and secrets
 load_secrets()
 
+# Initialize Firebase
 init_firebase()
 
 # Initialize Stripe
@@ -36,73 +38,63 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
+# Define request/response models
 class URLInput(BaseModel):
     url: str
-
 
 class UpgradeRequest(BaseModel):
     payment_method_id: str
     price_id: str
 
-
+# Create FastAPI app
 app = FastAPI()
 
-# Configure CORS - updated to allow the specific origin for the Amplify app
-# Get the origin from environment variable or use a default
-amplify_url = os.getenv('AMPLIFY_URL', 'https://main.d113ulshyf5fsx.amplifyapp.com')
-logger.info(f"Setting up CORS with allowed origin: {amplify_url}")
+# Set up CORS
+app = setup_cors(app)
 
-origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:5173",
-    "http://localhost:5173",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-    "https://research-assistant.app",
-    "https://www.research-assistant.app",
-    amplify_url,
-    "*"  # Allow all origins temporarily for debugging
-]
+# Add custom CORS handling for extra reliability
+app.add_middleware(CustomCORSMiddleware)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
+# Mount static files
 app.mount("/audio", StaticFiles(directory="audio"), name="audio")
 
+# Include routers
 app.include_router(search_router)
 
+# Create audio directory if it doesn't exist
 os.makedirs("audio", exist_ok=True)
 
-
+# Debug middleware to log requests
 @app.middleware("http")
 async def debug_middleware(request: Request, call_next):
     logger.debug(f"Incoming request: {request.method} {request.url}")
-    logger.debug("Auth header: %s", request.headers.get("Authorization"))
+    logger.debug(f"Headers: {request.headers}")
     
-    # Add CORS headers for preflight requests
+    # Process the request
     response = await call_next(request)
     
-    # Add headers to ensure CORS works properly even with Function URLs
+    # Add CORS headers to every response
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Credentials"] = "true"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept"
     
+    # Log response
+    logger.debug(f"Response status: {response.status_code}")
+    
     return response
 
-
+# Health check endpoint
 @app.get("/health")
 async def health_check():
     return JSONResponse(content={"status": "healthy"})
 
+# OPTIONS request handler for CORS preflight
+@app.options("/{rest_of_path:path}")
+async def options_handler(rest_of_path: str):
+    return JSONResponse(content={"detail": "OK"})
 
+# Rate limit endpoint
 @app.get("/api/rate-limit")
 async def get_rate_limit(request: Request,
                          token: dict = Depends(verify_firebase_token)
@@ -123,7 +115,7 @@ async def get_rate_limit(request: Request,
         logger.error(f"Error in get_rate_limit: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# Usage statistics endpoint
 @app.get("/api/usage/stats")
 async def get_usage_stats(request: Request,
                          token: dict = Depends(verify_firebase_token)):
@@ -159,7 +151,7 @@ async def get_usage_stats(request: Request,
         logger.error(f"Error in get_usage_stats: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# Plan upgrade endpoint
 @app.post("/api/upgrade")
 async def upgrade_plan(
     upgrade_request: UpgradeRequest,
@@ -218,7 +210,7 @@ async def upgrade_plan(
         logger.error(f"Error upgrading plan: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
+# Stripe webhook endpoint
 @app.post("/stripe/webhook")
 async def stripe_webhook(request: Request):
     try:
@@ -272,7 +264,7 @@ async def stripe_webhook(request: Request):
         logger.error(f"Error processing webhook: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
+# QnA generation endpoint
 @app.post("/api/generate-qna")
 async def generate_qna(url_input: URLInput,
                        request: Request,
@@ -327,7 +319,7 @@ async def generate_qna(url_input: URLInput,
         logger.error(f"Error processing request: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# Audio generation endpoint
 @app.post("/api/generate-audio")
 async def generate_audio(url_input: URLInput,
                          request: Request,
@@ -360,7 +352,7 @@ async def generate_audio(url_input: URLInput,
         logger.error(f"Error generating audio: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# Shutdown event handler
 @app.on_event("shutdown")
 async def shutdown_event():
     await rate_limiter.close()
