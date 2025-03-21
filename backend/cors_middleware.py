@@ -23,14 +23,15 @@ def setup_cors(app):
         "https://research-assistant.app",
         "https://www.research-assistant.app",
         amplify_url,
-        # Allow all origins in debug mode
-        "*"  # This should be removed in production
+        "https://main.d113ulshyf5fsx.amplifyapp.com",  # Explicitly add Amplify domain
+        "*"  # Allow all origins in development - remove in production
     ]
     
     # Add the CORS middleware
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
+        allow_origin_regex=".*",  # Allow all origins via regex
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -52,6 +53,11 @@ class CustomCORSMiddleware:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
+        
+        # Check if this is an OPTIONS request (preflight)
+        is_options = False
+        if scope["method"] == "OPTIONS":
+            is_options = True
             
         async def send_wrapper(message):
             """Wrap the send function to add CORS headers to all responses"""
@@ -61,8 +67,8 @@ class CustomCORSMiddleware:
                 
                 # Add CORS headers
                 headers[b"access-control-allow-origin"] = b"*"
-                headers[b"access-control-allow-methods"] = b"GET, POST, OPTIONS"
-                headers[b"access-control-allow-headers"] = b"Content-Type, Authorization, X-Requested-With"
+                headers[b"access-control-allow-methods"] = b"GET, POST, PUT, DELETE, OPTIONS"
+                headers[b"access-control-allow-headers"] = b"Content-Type, Authorization, X-Requested-With, Accept"
                 headers[b"access-control-allow-credentials"] = b"true"
                 headers[b"access-control-max-age"] = b"86400"  # 24 hours
                 
@@ -70,6 +76,28 @@ class CustomCORSMiddleware:
                 message["headers"] = [(k, v) for k, v in headers.items()]
                 
             await send(message)
+        
+        # If this is an OPTIONS request, respond immediately with 200 OK
+        if is_options:
+            async def receive_wrapper():
+                message = await receive()
+                return message
+                
+            # Send a 200 OK response with CORS headers for OPTIONS requests
+            await send({
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [
+                    (b"content-length", b"0"),
+                    (b"access-control-allow-origin", b"*"),
+                    (b"access-control-allow-methods", b"GET, POST, PUT, DELETE, OPTIONS"),
+                    (b"access-control-allow-headers", b"Content-Type, Authorization, X-Requested-With, Accept"),
+                    (b"access-control-allow-credentials", b"true"),
+                    (b"access-control-max-age", b"86400"),
+                ],
+            })
+            await send({"type": "http.response.body", "body": b""})
+            return
             
         # Pass the request to the app with our wrapped send function
         await self.app(scope, receive, send_wrapper)
