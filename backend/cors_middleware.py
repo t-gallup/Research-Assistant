@@ -42,6 +42,7 @@ def setup_cors(app):
     logger.info(f"CORS middleware added with {len(origins)} origins")
     return app
 
+
 class CustomCORSMiddleware:
     """Additional middleware to handle CORS for tricky cases"""
     
