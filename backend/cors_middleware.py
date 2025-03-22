@@ -1,9 +1,10 @@
+from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.responses import Response
 import os
 import logging
 
 logger = logging.getLogger(__name__)
-
 
 def setup_cors(app):
     """Set up CORS middleware with appropriate settings"""
@@ -13,12 +14,6 @@ def setup_cors(app):
     
     # Define allowed origins
     origins = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173",
-        "http://localhost:5173",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
         "https://research-assistant.app",
         "https://www.research-assistant.app",
         amplify_url,
@@ -31,16 +26,16 @@ def setup_cors(app):
         allow_origins=origins,
         allow_origin_regex=None,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-        expose_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With", 
+                     "X-Amz-Date", "X-Api-Key", "X-Amz-Security-Token"],
+        expose_headers=["Content-Type", "Content-Length"],
         max_age=86400,
     )
     
     # Log CORS settings
     logger.info(f"CORS middleware added with {len(origins)} origins")
     return app
-
 
 class CustomCORSMiddleware:
     """Additional middleware to handle CORS for tricky cases"""

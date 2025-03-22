@@ -85,21 +85,21 @@ async def debug_middleware(request: Request, call_next):
         logger.debug("Handling OPTIONS request")
         response = JSONResponse(content={"detail": "OK"})
         # Add CORS headers
-        response.headers["Access-Control-Allow-Origin"] = cors_origin
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, X-Requested-With"
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Max-Age"] = "86400"
+        if cors_origin:
+            response.headers["Access-Control-Allow-Origin"] = cors_origin
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, X-Requested-With, X-Amz-Date, X-Api-Key, X-Amz-Security-Token"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Max-Age"] = "86400"
         return response
     
     # Process the request
     response = await call_next(request)
     
     # Add CORS headers to every response
-    response.headers["Access-Control-Allow-Origin"] = cors_origin
-    response.headers["Access-Control-Allow-Credentials"] = "true"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, X-Requested-With"
+    if cors_origin:
+        response.headers["Access-Control-Allow-Origin"] = cors_origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
     
     # Log response
     logger.debug(f"Response status: {response.status_code}")
