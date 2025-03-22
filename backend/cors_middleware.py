@@ -4,6 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def setup_cors(app):
     """Set up CORS middleware with appropriate settings"""
     # Get allowed origins from environment or use defaults
