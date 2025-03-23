@@ -60,6 +60,7 @@ const Payment = () => {
               'Accept': 'application/json',
               'Content-Type': 'application/json'
             },
+            credentials: 'include',
           }
         );
 
@@ -105,6 +106,7 @@ const Payment = () => {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
           },
+          credentials: 'include',
           body: JSON.stringify({ plan: planName }),
         }
       );

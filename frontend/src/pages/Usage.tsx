@@ -54,7 +54,7 @@ const Usage = () => {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
           },
-          credentials: 'same-origin',
+          credentials: 'include',
         });
 
         console.log("Response status:", response.status); // Debug logging

@@ -77,7 +77,7 @@ const ResearchAssistant = () => {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         },
-        credentials: 'same-origin',
+        credentials: 'include',
         body: JSON.stringify({ url }),
       });
 
@@ -107,7 +107,7 @@ const ResearchAssistant = () => {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        credentials: 'same-origin',
+        credentials: 'include',
         body: JSON.stringify({ url }),
       });
 
@@ -171,7 +171,7 @@ const ResearchAssistant = () => {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json'
                     },
-                    credentials: 'same-origin',
+                    credentials: 'include',
                     body: JSON.stringify({ url: urlParam }),
                 });
 
@@ -203,7 +203,7 @@ const ResearchAssistant = () => {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json'
                     },
-                    credentials: 'same-origin',
+                    credentials: 'include',
                     body: JSON.stringify({ url: urlParam }),
                 });
 
