@@ -68,6 +68,7 @@ async def debug_middleware(request: Request, call_next):
     logger.debug(f"Headers: {request.headers}")
 
     origin = request.headers.get("Origin", "")
+    logger.debug(f"Origin header: {origin}")
 
     allowed_origins = [
         "https://main.d113ulshyf5fsx.amplifyapp.com",
@@ -93,12 +94,16 @@ async def debug_middleware(request: Request, call_next):
     
     # Process the request
     response = await call_next(request)
+    logger.debug(f"Response status: {response.status_code}")
+    logger.debug(f"Response headers: {response.headers}")
     
     # Add CORS headers to every response
     if cors_origin:
         response.headers["Access-Control-Allow-Origin"] = cors_origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
     
+    logger.debug(f"Response status: {response.status_code}")
+    logger.debug(f"Response headers: {response.headers}")
     # Log response
     logger.debug(f"Response status: {response.status_code}")
     
