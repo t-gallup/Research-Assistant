@@ -73,7 +73,8 @@ async def debug_middleware(request: Request, call_next):
     origin = request.headers.get("Origin", "")
 
     allowed_origins = [
-        "https://main.d113ulshyf5fsx.amplifyapp.com", 
+        "https://main.d113ulshyf5fsx.amplifyapp.com",
+        "https://main.d1g23bnvdsgbn1.amplifyapp.com",
         "https://research-assistant.app",
         "https://www.research-assistant.app"
     ]

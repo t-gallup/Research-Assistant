@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 def setup_cors(app):
     """Set up CORS middleware with appropriate settings"""
     # Get allowed origins from environment or use defaults
-    amplify_url = os.getenv('AMPLIFY_URL', 'https://main.d113ulshyf5fsx.amplifyapp.com')
+    amplify_url = os.getenv('AMPLIFY_URL', 'https://main.d1g23bnvdsgbn1.amplifyapp.com')
     logger.info(f"Setting up CORS with Amplify URL: {amplify_url}")
     
     # Define allowed origins
