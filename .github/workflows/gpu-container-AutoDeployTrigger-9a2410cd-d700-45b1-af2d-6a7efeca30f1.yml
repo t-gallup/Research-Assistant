@@ -161,7 +161,7 @@ jobs:
             --role "$LAMBDA_ROLE_ARN" \
             --timeout 300 \
             --memory-size 2048 \
-            --environment "Variables={DEPLOYMENT=aws,ENVIRONMENT=production,REDIS_HOST=${{ env.REDIS_HOST }},REDIS_PORT=${{ env.REDIS_PORT }},REDIS_PASSWORD=${{ env.REDIS_PASSWORD }},REDIS_USERNAME=${{ env.REDIS_USERNAME }},FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }},STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }},STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }},STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }},STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }},AMPLIFY_URL=https://main.d113ulshyf5fsx.amplifyapp.com}"
+            --environment "Variables={DEPLOYMENT=aws,ENVIRONMENT=production,REDIS_HOST=${{ env.REDIS_HOST }},REDIS_PORT=${{ env.REDIS_PORT }},REDIS_PASSWORD=${{ env.REDIS_PASSWORD }},REDIS_USERNAME=${{ env.REDIS_USERNAME }},FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }},STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }},STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }},STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }},STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }},AMPLIFY_URL=https://main.d1g23bnvdsgbn1.amplifyapp.com}"
 
       # Add function URL configuration and add permissions for it
       - name: Add Lambda function URL with public access
