@@ -64,12 +64,13 @@ app.include_router(search_router)
 # Create audio directory if it doesn't exist
 os.makedirs("audio", exist_ok=True)
 
+
 # Debug middleware to log requests
 @app.middleware("http")
 async def debug_middleware(request: Request, call_next):
     logger.debug(f"Incoming request: {request.method} {request.url}")
     logger.debug(f"Headers: {request.headers}")
-    
+
     origin = request.headers.get("Origin", "")
 
     allowed_origins = [
