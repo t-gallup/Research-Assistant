@@ -34,13 +34,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 # Define request/response models
 class URLInput(BaseModel):
     url: str
 
+
 class UpgradeRequest(BaseModel):
     payment_method_id: str
     price_id: str
+
 
 # Create FastAPI app
 app = FastAPI()
