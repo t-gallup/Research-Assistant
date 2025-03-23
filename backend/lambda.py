@@ -1,5 +1,4 @@
 import os
-import sys
 import logging
 from mangum import Mangum
 
@@ -16,7 +15,12 @@ try:
     from main import app
     
     # Create the lambda handler with lifespan turned off for containerized Lambda
-    handler = Mangum(app, lifespan="off")
+    handler = Mangum(app,
+                     lifespan="off",
+                     api_gateway_base_path=None,
+                     enable_lifespan=False,
+                     log_level="debug",
+                     api_gateway_strip_version_path=True)
     
     logger.info("Lambda handler initialized successfully")
 
