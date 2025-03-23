@@ -1,18 +1,29 @@
-FROM public.ecr.aws/lambda/python:3.11
+# Use Amazon Linux 2 as the base image (has newer GLIBC)
+FROM amazonlinux:2 AS build
 
-# Copy requirements file
-COPY requirements.txt ${LAMBDA_TASK_ROOT}
+# Install Python 3.11 and development tools
+RUN yum update -y && \
+    yum install -y python3.11 python3.11-pip python3.11-devel \
+    gcc openssl-devel bzip2-devel libffi-devel wget tar gzip 
 
-# Install the specified packages
-RUN pip install -r requirements.txt --target "${LAMBDA_TASK_ROOT}"
+# Create app directory
+WORKDIR /app
+
+# Install AWS Lambda Runtime Interface Client
+RUN pip3.11 install awslambdaric
+
+# Copy requirements file and install dependencies
+COPY requirements.txt .
+RUN pip3.11 install -r requirements.txt
 
 # Copy function code
-COPY *.py ${LAMBDA_TASK_ROOT}
-COPY firebase-adminsdk.json ${LAMBDA_TASK_ROOT}
+COPY *.py .
+COPY firebase-adminsdk.json .
 
-# Create directories
-RUN mkdir -p ${LAMBDA_TASK_ROOT}/audio
-RUN chmod 777 ${LAMBDA_TASK_ROOT}/audio
+# Create audio directory with proper permissions
+RUN mkdir -p audio
+RUN chmod 777 audio
 
-# Set the CMD to your handler
+# Set up entry point
+ENTRYPOINT [ "/usr/local/bin/python3.11", "-m", "awslambdaric" ]
 CMD [ "lambda.handler" ]
