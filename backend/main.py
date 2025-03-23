@@ -9,14 +9,10 @@ import stripe
 from fastapi.staticfiles import StaticFiles
 import tts as t
 from rate_limiter import rate_limiter
-from config import load_secrets
 from firebase_auth import init_firebase, verify_firebase_token
 from search_routes import router as search_router
 from datetime import datetime
 from cors_middleware import setup_cors, CustomCORSMiddleware
-
-# Load environment variables and secrets
-load_secrets()
 
 # Initialize Firebase
 init_firebase()
