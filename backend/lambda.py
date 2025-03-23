@@ -17,10 +17,7 @@ try:
     # Create the lambda handler with lifespan turned off for containerized Lambda
     handler = Mangum(app,
                      lifespan="off",
-                     api_gateway_base_path=None,
-                     enable_lifespan=False,
-                     log_level="debug",
-                     api_gateway_strip_version_path=True)
+                     api_gateway_base_path=None)
     
     logger.info("Lambda handler initialized successfully")
 
