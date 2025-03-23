@@ -101,7 +101,7 @@ async def debug_middleware(request: Request, call_next):
     logger.debug(f"Response headers: {response.headers}")
     
     # Add CORS headers to every response
-    if origin in allowed_origins:
+    if cors_origin in allowed_origins:
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
