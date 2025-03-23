@@ -1,22 +1,15 @@
-from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.responses import Response
-import os
 import logging
 
 logger = logging.getLogger(__name__)
 
 def setup_cors(app):
     """Set up CORS middleware with appropriate settings"""
-    # Get allowed origins from environment or use defaults
-    amplify_url = os.getenv('AMPLIFY_URL', 'https://main.d1g23bnvdsgbn1.amplifyapp.com')
-    logger.info(f"Setting up CORS with Amplify URL: {amplify_url}")
-    
     # Define allowed origins
     origins = [
         "https://research-assistant.app",
         "https://www.research-assistant.app",
-        amplify_url,
+        "https://main.d1g23bnvdsgbn1.amplifyapp.com",
         "https://main.d113ulshyf5fsx.amplifyapp.com"
     ]
     
@@ -92,6 +85,6 @@ class CustomCORSMiddleware:
             })
             await send({"type": "http.response.body", "body": b""})
             return
-            
+
         # Pass the request to the app with our wrapped send function
         await self.app(scope, receive, send_wrapper)
