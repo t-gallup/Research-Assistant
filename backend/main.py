@@ -82,18 +82,18 @@ async def debug_middleware(request: Request, call_next):
 
     cors_origin = origin if origin in allowed_origins else None
     
-    # Handle preflight OPTIONS requests immediately
-    if request.method == "OPTIONS":
-        logger.debug("Handling OPTIONS request")
-        response = JSONResponse(content={"detail": "OK"})
-        # Add CORS headers
-        if cors_origin:
-            response.headers["Access-Control-Allow-Origin"] = cors_origin
-            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-            response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, X-Requested-With, X-Amz-Date, X-Api-Key, X-Amz-Security-Token"
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Max-Age"] = "86400"
-        return response
+    # # Handle preflight OPTIONS requests immediately
+    # if request.method == "OPTIONS":
+    #     logger.debug("Handling OPTIONS request")
+    #     response = JSONResponse(content={"detail": "OK"})
+    #     # Add CORS headers
+    #     if cors_origin:
+    #         response.headers["Access-Control-Allow-Origin"] = cors_origin
+    #         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    #         response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, X-Requested-With, X-Amz-Date, X-Api-Key, X-Amz-Security-Token"
+    #         response.headers["Access-Control-Allow-Credentials"] = "true"
+    #         response.headers["Access-Control-Max-Age"] = "86400"
+    #     return response
     
     # Process the request
     response = await call_next(request)
@@ -101,9 +101,12 @@ async def debug_middleware(request: Request, call_next):
     logger.debug(f"Response headers: {response.headers}")
     
     # Add CORS headers to every response
-    if cors_origin:
-        response.headers["Access-Control-Allow-Origin"] = cors_origin
+    if origin in allowed_origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, X-Requested-With"
+        response.headers["Access-Control-Max-Age"] = "86400"
     
     logger.debug(f"Response status: {response.status_code}")
     logger.debug(f"Response headers: {response.headers}")
