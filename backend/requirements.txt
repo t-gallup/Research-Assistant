@@ -2,7 +2,7 @@
 fastapi
 uvicorn
 pydantic
-mangum==0.17.0
+mangum
 
 # Auth and rate limiting
 redis
