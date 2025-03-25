@@ -28,7 +28,7 @@ PyPDF2
 pymupdf
 
 # Audio processing
-azure-cognitiveservices-speech
+# azure-cognitiveservices-speech
 soundfile
 
 # Payments

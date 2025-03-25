@@ -7,7 +7,7 @@ import os
 import uuid
 import stripe
 from fastapi.staticfiles import StaticFiles
-import tts as t
+import polly_tts as t
 from rate_limiter import rate_limiter
 from firebase_auth import init_firebase, verify_firebase_token
 from search_routes import router as search_router
@@ -375,7 +375,6 @@ async def generate_qna(url_input: URLInput,
         logger.error(f"Error processing request: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Audio generation endpoint
 @app.post("/api/generate-audio")
 async def generate_audio(url_input: URLInput,
                          request: Request,
@@ -387,19 +386,23 @@ async def generate_audio(url_input: URLInput,
         await rate_limiter.check_rate_limit(request, token)
     
     try:
-        summarizer = t.PDFAudioSummarizer(
-            openai_api_key=os.getenv('OPENAI_API_KEY'),
-            azure_key=os.getenv('AZURE_SPEECH_KEY'),
-            azure_region="westus2"
-        )
+        # Initialize the Polly summarizer
+        summarizer = p.PollyAudioSummarizer()
+        
+        # Get the summary content for the audio
+        initial_summary, article_title = rp.summarize_content(url_input.url)
+        
+        # Generate a unique output file name
         output_file = f"audio/audio_{uuid.uuid4()}.mp3"
-        result = summarizer.process_file(url_input.url, output_file)
+        
+        # Generate the audio file with Polly
+        result = summarizer.process_file(url_input.url, initial_summary, output_file)
         
         if result["success"]:
             return {
                 "status": "success",
                 "audio_file": os.path.basename(output_file),
-                "chunk_summaries": result["chunk_summaries"]
+                "chunk_summaries": result.get("chunk_summaries", [])
             }
         else:
             raise HTTPException(status_code=500, detail="Failed to process file")
