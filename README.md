@@ -247,21 +247,3 @@ cd frontend
 docker build -t research-assistant-frontend .
 docker run -p 3000:80 research-assistant-frontend
 ```
-
-## Subscription Plans
-
-### Free Tier
-- 10 content analyses per day
-- Basic Q&A and summaries
-- Audio generation
-
-### Plus Tier
-- 30 content analyses per day
-- All Free tier features
-- Priority processing
-
-### Pro Tier
-- 100 content analyses per day
-- All Plus tier features
-- Advanced analytics
-- Faster processing times
