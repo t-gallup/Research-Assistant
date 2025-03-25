@@ -4,8 +4,13 @@ from fastapi import HTTPException, Request
 import os
 import logging
 import traceback
+import json
 
-# Set up logging
+# Set up logging with more detailed format
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -19,10 +24,54 @@ def init_firebase():
         # Check if file exists
         if not os.path.exists(cred_path):
             logger.error(f"Firebase credentials file not found at {cred_path}")
-            raise FileNotFoundError(f"Firebase credentials file not found at {cred_path}")
+            
+            # Check directory contents
+            dir_path = os.path.dirname(__file__)
+            logger.error(f"Directory contents of {dir_path}: {os.listdir(dir_path)}")
+            
+            # Try alternative approach - use environment variable if available
+            firebase_creds_env = os.getenv('FIREBASE_ADMIN_SDK_JSON')
+            if firebase_creds_env:
+                logger.info("Found Firebase credentials in environment variable, creating file...")
+                try:
+                    # Write credentials from environment variable to file
+                    with open(cred_path, 'w') as f:
+                        f.write(firebase_creds_env)
+                    logger.info(f"Successfully created Firebase credentials file from environment variable")
+                except Exception as write_error:
+                    logger.error(f"Error writing Firebase credentials file: {str(write_error)}")
+                    raise
+            else:
+                raise FileNotFoundError(f"Firebase credentials file not found at {cred_path} and no environment variable available")
         
+        # Verify the file has valid content
+        try:
+            with open(cred_path, 'r') as f:
+                creds_content = f.read()
+                # Try to parse as JSON to validate
+                json.loads(creds_content)
+                logger.info(f"Firebase credentials file validated as valid JSON")
+        except json.JSONDecodeError:
+            logger.error(f"Firebase credentials file is not valid JSON")
+            raise ValueError("Firebase credentials file content is not valid JSON")
+        except Exception as read_error:
+            logger.error(f"Error reading Firebase credentials file: {str(read_error)}")
+            raise
+            
+        # Initialize Firebase with the credentials file
         cred = credentials.Certificate(cred_path)
         project_id = os.getenv('FIREBASE_PROJECT_ID')
+        
+        if not project_id:
+            logger.warning("FIREBASE_PROJECT_ID environment variable not set")
+            # Try to extract project_id from credentials file
+            try:
+                with open(cred_path, 'r') as f:
+                    creds_json = json.load(f)
+                    project_id = creds_json.get('project_id')
+                    logger.info(f"Extracted project_id from credentials file: {project_id}")
+            except Exception as e:
+                logger.error(f"Failed to extract project_id from credentials: {str(e)}")
         
         logger.info(f"Firebase project ID: {project_id}")
         
