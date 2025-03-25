@@ -46,10 +46,20 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # Set up Firebase Admin SDK credentials
+      # Set up Firebase Admin SDK credentials - improved version with verification
       - name: Setup Firebase Credentials
         run: |
           echo '${{ secrets.FIREBASE_ADMIN_SDK_JSON }}' > backend/firebase-adminsdk.json
+          # Verify the file exists and has content
+          if [ ! -s backend/firebase-adminsdk.json ]; then
+            echo "Error: Firebase credentials file is empty or not created correctly"
+            exit 1
+          fi
+          # Print the file size and first few characters to verify it exists (redacting sensitive data)
+          echo "Firebase credentials file created, size: $(wc -c < backend/firebase-adminsdk.json) bytes"
+          echo "File starts with: $(head -c 20 backend/firebase-adminsdk.json | sed 's/./*/g')"
+          # Set proper permissions
+          chmod 644 backend/firebase-adminsdk.json
     
       # Set up Redis connection - create a free Redis database
       - name: Setup Redis Database
@@ -88,14 +98,23 @@ jobs:
           aws ecr describe-repositories --repository-names research-assistant || \
           aws ecr create-repository --repository-name research-assistant
 
-      # Build and push Docker image to ECR
+      # Build and push Docker image to ECR - improved with explicit Firebase file handling
       - name: Build, tag, and push image to Amazon ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: research-assistant
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
+          # Print directory contents before build (for debugging)
+          echo "Contents of backend directory:"
+          ls -la backend/
+          
+          # Build Docker image with explicit Firebase credential handling
+          docker build \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            ./backend
+          
+          # Tag and push the images
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
@@ -109,7 +128,7 @@ jobs:
           # Wait to ensure deletion is complete
           sleep 5
       
-      # Create new Lambda function with container image
+      # Create new Lambda function with container image and improved environment
       - name: Create Lambda function with container image
         run: |
           # Create an IAM role for Lambda if one doesn't exist yet
@@ -161,7 +180,7 @@ jobs:
             --role "$LAMBDA_ROLE_ARN" \
             --timeout 300 \
             --memory-size 2048 \
-            --environment "Variables={DEPLOYMENT=aws,ENVIRONMENT=production,REDIS_HOST=${{ env.REDIS_HOST }},REDIS_PORT=${{ env.REDIS_PORT }},REDIS_PASSWORD=${{ env.REDIS_PASSWORD }},REDIS_USERNAME=${{ env.REDIS_USERNAME }},FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }},STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }},STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }},STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }},STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }},AMPLIFY_URL=https://main.d1g23bnvdsgbn1.amplifyapp.com}"
+            --environment "Variables={DEPLOYMENT=aws,ENVIRONMENT=production,REDIS_HOST=${{ env.REDIS_HOST }},REDIS_PORT=${{ env.REDIS_PORT }},REDIS_PASSWORD=${{ env.REDIS_PASSWORD }},REDIS_USERNAME=${{ env.REDIS_USERNAME }},FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }},STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }},STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }},STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }},STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }},AMPLIFY_URL=https://main.d1g23bnvdsgbn1.amplifyapp.com,GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }},SEARCH_ENGINE_ID=${{ secrets.SEARCH_ENGINE_ID }}}"
 
       # Add function URL configuration and add permissions for it
       - name: Add Lambda function URL with public access
