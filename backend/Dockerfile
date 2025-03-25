@@ -1,9 +1,6 @@
 # Use Python 3.11 image with a newer Linux base
 FROM public.ecr.aws/lambda/python:3.11
 
-# Create app directory
-WORKDIR /var/task
-
 # Install AWS Lambda Runtime Interface Client
 RUN pip install --no-cache-dir awslambdaric
 
@@ -12,12 +9,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy function code
-COPY *.py /var/task/
+COPY *.py ${LAMBDA_TASK_ROOT}/
 
 # Create audio directory with proper permissions
-RUN mkdir -p audio
-RUN chmod 777 audio
+RUN mkdir -p ${LAMBDA_TASK_ROOT}/audio
+RUN chmod 777 ${LAMBDA_TASK_ROOT}/audio
 
-# Set up entry point for AWS Lambda
-ENTRYPOINT [ "/usr/local/bin/python", "-m", "awslambdaric" ]
+# Set up CMD for AWS Lambda
 CMD [ "lambda.handler" ]
