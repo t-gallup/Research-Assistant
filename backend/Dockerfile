@@ -1,5 +1,5 @@
 # Use Python 3.11 image with a newer Linux base
-FROM python:3.11-bullseye
+FROM public.ecr.aws/lambda/python:3.11
 
 # Create app directory
 WORKDIR /var/task
