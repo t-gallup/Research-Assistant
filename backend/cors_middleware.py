@@ -68,8 +68,10 @@ class CustomCORSMiddleware:
             
         async def send_wrapper(message):
             """Wrap the send function to add CORS headers to all responses"""
+            logger = logging.getLogger(__name__)
             if message["type"] == "http.response.start":
                 # Start of response, add CORS headers
+                logger.debug(f"CORS middleware - Response headers before: {message.get('headers', [])}")
                 headers = dict(message.get("headers", []))
                 
                 # Add CORS headers with specific origin
@@ -83,6 +85,7 @@ class CustomCORSMiddleware:
                 # Convert headers back to list of tuples
                 message["headers"] = [(k, v) for k, v in headers.items()]
                 
+                logger.debug(f"CORS middleware - Response headers after: {message.get('headers', [])}")
             await send(message)
         
         # If this is an OPTIONS request, respond immediately with 200 OK
