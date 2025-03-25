@@ -1,15 +1,23 @@
 FROM public.ecr.aws/lambda/python:3.11
 
-# Update yum and install necessary system libraries
-RUN yum update -y && \
-    yum install -y wget gcc gcc-c++ make glibc-static tar gzip && \
-    yum clean all
+# Update yum
+RUN yum update -y
+
+# Install necessary system libraries
+RUN yum install -y wget gcc gcc-c++ make glibc-static tar gzip
+
+# Verify wget installation
+RUN wget --version
+
+# Clean up yum caches to reduce image size
+RUN yum clean all
 
 # Download and build GLIBC 2.29
 RUN wget http://ftp.gnu.org/gnu/libc/glibc-2.29.tar.gz && \
     tar -xvzf glibc-2.29.tar.gz && \
     cd glibc-2.29 && \
-    mkdir build && cd build && \
+    mkdir build && \
+    cd build && \
     ../configure --prefix=/opt/glibc-2.29 && \
     make -j$(nproc) && \
     make install
@@ -25,8 +33,7 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 # Create audio directory with proper permissions
-RUN mkdir -p ${LAMBDA_TASK_ROOT}/audio
-RUN chmod 777 ${LAMBDA_TASK_ROOT}/audio
+RUN mkdir -p ${LAMBDA_TASK_ROOT}/audio && chmod 777 ${LAMBDA_TASK_ROOT}/audio
 
 # The CMD specifies the handler
 CMD [ "lambda.handler" ]
