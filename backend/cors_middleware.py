@@ -20,8 +20,8 @@ def setup_cors(app):
         allow_origin_regex=None,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With", 
-                     "X-Amz-Date", "X-Api-Key", "X-Amz-Security-Token"],
+        allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With",
+                       "X-Amz-Date", "X-Api-Key", "X-Amz-Security-Token"],
         expose_headers=["Content-Type", "Content-Length"],
         max_age=86400,
     )
