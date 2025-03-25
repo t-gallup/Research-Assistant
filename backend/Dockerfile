@@ -12,7 +12,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy function code
-COPY *.py .
+COPY *.py /var/task/
 
 # Create audio directory with proper permissions
 RUN mkdir -p audio
