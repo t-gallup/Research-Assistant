@@ -11,28 +11,41 @@ import tts as t
 from rate_limiter import rate_limiter
 from firebase_auth import init_firebase, verify_firebase_token
 from search_routes import router as search_router
+from firebase_test import router as firebase_test_router
 from datetime import datetime
 from cors_middleware import setup_cors, CustomCORSMiddleware
 
-# Initialize Firebase
-init_firebase()
-
-# Initialize Stripe
-stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
-
-# Price IDs for different tiers
-PRICE_IDS = {
-    'pro': os.getenv('STRIPE_PRO_PRICE_ID'),
-    'plus': os.getenv('STRIPE_PLUS_PRICE_ID')
-}
-
-# Set up logging
+# Set up logging first so we capture all initialization logs
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger(__name__)
+
+try:
+    # Initialize Firebase with better error handling
+    logger.info("Starting Firebase initialization...")
+    init_firebase()
+    logger.info("Firebase initialization completed successfully")
+except Exception as e:
+    logger.error(f"Firebase initialization failed: {str(e)}", exc_info=True)
+    # Don't re-raise, we'll continue with the app even if Firebase fails
+    # This allows the diagnostic endpoints to work
+
+# Initialize Stripe
+try:
+    stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+    if not stripe.api_key:
+        logger.warning("STRIPE_SECRET_KEY not set, Stripe functionality will be limited")
+except Exception as e:
+    logger.error(f"Error initializing Stripe: {str(e)}")
+
+# Price IDs for different tiers
+PRICE_IDS = {
+    'pro': os.getenv('STRIPE_PRO_PRICE_ID'),
+    'plus': os.getenv('STRIPE_PLUS_PRICE_ID')
+}
 
 
 # Define request/response models
@@ -54,21 +67,32 @@ app = setup_cors(app)
 # Add custom CORS handling for extra reliability
 app.add_middleware(CustomCORSMiddleware)
 
-# Mount static files
-app.mount("/audio", StaticFiles(directory="audio"), name="audio")
+# Try to create audio directory if it doesn't exist
+try:
+    os.makedirs("audio", exist_ok=True)
+    logger.info("Audio directory created or already exists")
+    
+    # Mount static files
+    app.mount("/audio", StaticFiles(directory="audio"), name="audio")
+except Exception as e:
+    logger.error(f"Error creating audio directory: {str(e)}")
 
 # Include routers
 app.include_router(search_router)
-
-# Create audio directory if it doesn't exist
-os.makedirs("audio", exist_ok=True)
+app.include_router(firebase_test_router)
 
 
 # Debug middleware to log requests
 @app.middleware("http")
 async def debug_middleware(request: Request, call_next):
+    # Log detailed request info
     logger.debug(f"Incoming request: {request.method} {request.url}")
-    logger.debug(f"Headers: {request.headers}")
+    
+    # Log headers (excluding Authorization for security)
+    headers = dict(request.headers)
+    if 'authorization' in headers:
+        headers['authorization'] = headers['authorization'][:10] + '...'
+    logger.debug(f"Headers: {headers}")
 
     origin = request.headers.get("Origin", "")
     logger.debug(f"Origin header: {origin}")
@@ -82,23 +106,9 @@ async def debug_middleware(request: Request, call_next):
 
     cors_origin = origin if origin in allowed_origins else None
     
-    # # Handle preflight OPTIONS requests immediately
-    # if request.method == "OPTIONS":
-    #     logger.debug("Handling OPTIONS request")
-    #     response = JSONResponse(content={"detail": "OK"})
-    #     # Add CORS headers
-    #     if cors_origin:
-    #         response.headers["Access-Control-Allow-Origin"] = cors_origin
-    #         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    #         response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, X-Requested-With, X-Amz-Date, X-Api-Key, X-Amz-Security-Token"
-    #         response.headers["Access-Control-Allow-Credentials"] = "true"
-    #         response.headers["Access-Control-Max-Age"] = "86400"
-    #     return response
-    
     # Process the request
     response = await call_next(request)
     logger.debug(f"Response status: {response.status_code}")
-    logger.debug(f"Response headers: {response.headers}")
     
     # Add CORS headers to every response
     if cors_origin in allowed_origins:
@@ -108,17 +118,32 @@ async def debug_middleware(request: Request, call_next):
         response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, X-Requested-With"
         response.headers["Access-Control-Max-Age"] = "86400"
     
+    # Log response details
     logger.debug(f"Response status: {response.status_code}")
     logger.debug(f"Response headers: {response.headers}")
-    # Log response
-    logger.debug(f"Response status: {response.status_code}")
     
     return response
 
 # Health check endpoint
 @app.get("/health")
 async def health_check():
-    return JSONResponse(content={"status": "healthy"})
+    # Enhanced health check that includes Firebase status
+    health_data = {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "environment": os.getenv("ENVIRONMENT", "unknown"),
+        "deployment": os.getenv("DEPLOYMENT", "unknown")
+    }
+    
+    # Check if Firebase is initialized
+    try:
+        from firebase_admin import get_app
+        app = get_app()
+        health_data["firebase"] = "initialized"
+    except Exception as e:
+        health_data["firebase"] = f"not_initialized: {str(e)}"
+    
+    return JSONResponse(content=health_data)
 
 # OPTIONS request handler for CORS preflight
 @app.options("/{rest_of_path:path}")
@@ -382,6 +407,27 @@ async def generate_audio(url_input: URLInput,
     except Exception as e:
         logger.error(f"Error generating audio: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# Root endpoint with diagnostic information
+@app.get("/")
+async def root():
+    return {
+        "app": "Research Assistant",
+        "status": "running",
+        "endpoints": {
+            "diagnostics": [
+                "/health",
+                "/api/test-firebase"
+            ],
+            "api": [
+                "/api/generate-qna",
+                "/api/generate-audio",
+                "/api/search",
+                "/api/rate-limit",
+                "/api/usage/stats"
+            ]
+        }
+    }
 
 # Shutdown event handler
 @app.on_event("shutdown")
