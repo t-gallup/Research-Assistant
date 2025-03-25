@@ -35,11 +35,31 @@ class CustomCORSMiddleware:
     
     def __init__(self, app):
         self.app = app
+
+        self.allowed_origins = [
+            "https://research-assistant.app",
+            "https://www.research-assistant.app",
+            "https://main.d1g23bnvdsgbn1.amplifyapp.com",
+            "https://main.d113ulshyf5fsx.amplifyapp.com"
+        ]
+        self.logger = logging.getLogger(__name__)
     
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
+        
+        # Extract origin from headers
+        origin = None
+        for header_name, header_value in scope.get("headers", []):
+            if header_name == b"origin":
+                origin = header_value.decode("utf-8")
+                break
+        
+        self.logger.debug(f"Origin header: {origin}")
+        
+        # Check if origin is allowed
+        cors_origin = origin if origin in self.allowed_origins else None
         
         # Check if this is an OPTIONS request (preflight)
         is_options = False
@@ -52,12 +72,13 @@ class CustomCORSMiddleware:
                 # Start of response, add CORS headers
                 headers = dict(message.get("headers", []))
                 
-                # Add CORS headers
-                headers[b"access-control-allow-origin"] = b"*"
-                headers[b"access-control-allow-methods"] = b"GET, POST, PUT, DELETE, OPTIONS"
-                headers[b"access-control-allow-headers"] = b"Content-Type, Authorization, X-Requested-With, Accept"
-                headers[b"access-control-allow-credentials"] = b"true"
-                headers[b"access-control-max-age"] = b"86400"  # 24 hours
+                # Add CORS headers with specific origin
+                if cors_origin:
+                    headers[b"access-control-allow-origin"] = cors_origin.encode("utf-8")
+                    headers[b"access-control-allow-methods"] = b"GET, POST, PUT, DELETE, OPTIONS"
+                    headers[b"access-control-allow-headers"] = b"Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Amz-Date, X-Api-Key, X-Amz-Security-Token"
+                    headers[b"access-control-allow-credentials"] = b"true"
+                    headers[b"access-control-max-age"] = b"86400"  # 24 hours
                 
                 # Convert headers back to list of tuples
                 message["headers"] = [(k, v) for k, v in headers.items()]
@@ -71,17 +92,25 @@ class CustomCORSMiddleware:
                 return message
                 
             # Send a 200 OK response with CORS headers for OPTIONS requests
+            cors_headers = []
+            if cors_origin:
+                cors_headers = [
+                    (b"content-length", b"0"),
+                    (b"access-control-allow-origin", cors_origin.encode("utf-8")),
+                    (b"access-control-allow-methods", b"GET, POST, PUT, DELETE, OPTIONS"),
+                    (b"access-control-allow-headers", b"Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Amz-Date, X-Api-Key, X-Amz-Security-Token"),
+                    (b"access-control-allow-credentials", b"true"),
+                    (b"access-control-max-age", b"86400"),
+                ]
+            else:
+                cors_headers = [
+                    (b"content-length", b"0")
+                ]
+                
             await send({
                 "type": "http.response.start",
                 "status": 200,
-                "headers": [
-                    (b"content-length", b"0"),
-                    (b"access-control-allow-origin", b"*"),
-                    (b"access-control-allow-methods", b"GET, POST, PUT, DELETE, OPTIONS"),
-                    (b"access-control-allow-headers", b"Content-Type, Authorization, X-Requested-With, Accept"),
-                    (b"access-control-allow-credentials", b"true"),
-                    (b"access-control-max-age", b"86400"),
-                ],
+                "headers": cors_headers,
             })
             await send({"type": "http.response.body", "body": b""})
             return

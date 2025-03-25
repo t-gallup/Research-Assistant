@@ -131,56 +131,43 @@ jobs:
       # Create new Lambda function with container image and improved environment
       - name: Create Lambda function with container image
         run: |
-          # Create an IAM role for Lambda if one doesn't exist yet
-          LAMBDA_ROLE_ARN=$(aws iam get-role --role-name research-assistant-lambda-role --query 'Role.Arn' --output text 2>/dev/null || echo "")
+          # Set the Lambda role ARN directly
+          LAMBDA_ROLE_ARN="arn:aws:iam::$(aws sts get-caller-identity --query 'Account' --output text):role/research-assistant-lambda-role"
           
-          if [ -z "$LAMBDA_ROLE_ARN" ]; then
-            echo "Creating new Lambda execution role..."
+          echo "Using existing Lambda role: $LAMBDA_ROLE_ARN"
+          
+          # Check if Lambda function exists
+          FUNCTION_EXISTS=$(aws lambda get-function --function-name research-assistant-backend 2>/dev/null || echo "not_found")
+          
+          if [[ "$FUNCTION_EXISTS" != "not_found" ]]; then
+            # Update existing function
+            echo "Updating existing Lambda function..."
+            aws lambda update-function-code \
+              --function-name research-assistant-backend \
+              --image-uri ${{ env.IMAGE_URI }}
             
-            # Create policy document for trust relationship
-            cat > trust-policy.json << 'EOF'
-          {
-            "Version": "2012-10-17",
-            "Statement": [
-              {
-                "Effect": "Allow",
-                "Principal": {
-                  "Service": "lambda.amazonaws.com"
-                },
-                "Action": "sts:AssumeRole"
-              }
-            ]
-          }
-          EOF
-            
-            # Create the role
-            LAMBDA_ROLE_ARN=$(aws iam create-role \
-              --role-name research-assistant-lambda-role \
-              --assume-role-policy-document file://trust-policy.json \
-              --query 'Role.Arn' --output text)
-              
-            # Attach basic Lambda execution policy
-            aws iam attach-role-policy \
-              --role-name research-assistant-lambda-role \
-              --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-              
-            # Wait for role to propagate
-            echo "Waiting for role to propagate..."
-            sleep 15
+            # Update function configuration
+            aws lambda update-function-configuration \
+              --function-name research-assistant-backend \
+              --timeout 300 \
+              --memory-size 2048 \
+              --environment "Variables={DEPLOYMENT=aws,ENVIRONMENT=production,REDIS_HOST=${{ env.REDIS_HOST }},REDIS_PORT=${{ env.REDIS_PORT }},REDIS_PASSWORD=${{ env.REDIS_PASSWORD }},REDIS_USERNAME=${{ env.REDIS_USERNAME }},FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }},STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }},STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }},STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }},STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }},GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }},SEARCH_ENGINE_ID=${{ secrets.SEARCH_ENGINE_ID }}}"
           else
-            echo "Using existing Lambda role: $LAMBDA_ROLE_ARN"
+            # Create new function with existing role
+            echo "Creating new Lambda function..."
+            aws lambda create-function \
+              --function-name research-assistant-backend \
+              --package-type Image \
+              --code ImageUri=${{ env.IMAGE_URI }} \
+              --role "$LAMBDA_ROLE_ARN" \
+              --timeout 300 \
+              --memory-size 2048 \
+              --environment "Variables={DEPLOYMENT=aws,ENVIRONMENT=production,REDIS_HOST=${{ env.REDIS_HOST }},REDIS_PORT=${{ env.REDIS_PORT }},REDIS_PASSWORD=${{ env.REDIS_PASSWORD }},REDIS_USERNAME=${{ env.REDIS_USERNAME }},FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }},STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }},STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }},STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }},STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }},GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }},SEARCH_ENGINE_ID=${{ secrets.SEARCH_ENGINE_ID }}}"
           fi
-          
-          # Create the Lambda function with the role
-          echo "Creating Lambda function with role: $LAMBDA_ROLE_ARN"
-          aws lambda create-function \
-            --function-name research-assistant-backend \
-            --package-type Image \
-            --code ImageUri=${{ env.IMAGE_URI }} \
-            --role "$LAMBDA_ROLE_ARN" \
-            --timeout 300 \
-            --memory-size 2048 \
-            --environment "Variables={DEPLOYMENT=aws,ENVIRONMENT=production,REDIS_HOST=${{ env.REDIS_HOST }},REDIS_PORT=${{ env.REDIS_PORT }},REDIS_PASSWORD=${{ env.REDIS_PASSWORD }},REDIS_USERNAME=${{ env.REDIS_USERNAME }},FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }},STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }},STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }},STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }},STRIPE_PLUS_PRICE_ID=${{ secrets.STRIPE_PLUS_PRICE_ID }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }},AMPLIFY_URL=https://main.d1g23bnvdsgbn1.amplifyapp.com,GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }},SEARCH_ENGINE_ID=${{ secrets.SEARCH_ENGINE_ID }}}"
+
+          # Wait for function update to complete
+          echo "Waiting for function update to complete..."
+          sleep 10
 
       # Add function URL configuration and add permissions for it
       - name: Add Lambda function URL with public access

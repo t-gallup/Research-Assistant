@@ -11,7 +11,7 @@ import tts as t
 from rate_limiter import rate_limiter
 from firebase_auth import init_firebase, verify_firebase_token
 from search_routes import router as search_router
-from firebase_test import router as firebase_test_router
+# from firebase_test import router as firebase_test_router
 from datetime import datetime
 from cors_middleware import setup_cors, CustomCORSMiddleware
 
@@ -79,7 +79,7 @@ except Exception as e:
 
 # Include routers
 app.include_router(search_router)
-app.include_router(firebase_test_router)
+# app.include_router(firebase_test_router)
 
 
 # Debug middleware to log requests

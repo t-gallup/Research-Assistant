@@ -10,6 +10,7 @@ fastapi-limiter
 python-jose[cryptography]
 python-multipart
 firebase-admin
+boto3
 
 # ML and AI
 openai
