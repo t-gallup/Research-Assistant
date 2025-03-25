@@ -1,5 +1,10 @@
 FROM public.ecr.aws/lambda/python:3.11
 
+# Update yum and install necessary system libraries
+RUN yum update -y && \
+    yum install -y wget gcc gcc-c++ make glibc-static tar gzip && \
+    yum clean all
+
 # Download and build GLIBC 2.29
 RUN wget http://ftp.gnu.org/gnu/libc/glibc-2.29.tar.gz && \
     tar -xvzf glibc-2.29.tar.gz && \
