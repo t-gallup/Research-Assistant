@@ -1,9 +1,16 @@
 FROM public.ecr.aws/lambda/python:3.11
 
-# Install necessary system libraries for azure speech SDK
-RUN yum update -y && \
-    yum install -y wget tar gzip && \
-    yum clean all
+# Download and build GLIBC 2.29
+RUN wget http://ftp.gnu.org/gnu/libc/glibc-2.29.tar.gz && \
+    tar -xvzf glibc-2.29.tar.gz && \
+    cd glibc-2.29 && \
+    mkdir build && cd build && \
+    ../configure --prefix=/opt/glibc-2.29 && \
+    make -j$(nproc) && \
+    make install
+
+# Set LD_LIBRARY_PATH to use the new GLIBC version
+ENV LD_LIBRARY_PATH=/opt/glibc-2.29/lib:$LD_LIBRARY_PATH
 
 # Copy function code to the Lambda task root directory
 COPY *.py ${LAMBDA_TASK_ROOT}/
