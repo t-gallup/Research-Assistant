@@ -2,18 +2,21 @@ from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-import rag_pipeline as rp
 import logging
 import os
 import uuid
 import stripe
 from fastapi.staticfiles import StaticFiles
-import tts as t
 from rate_limiter import rate_limiter
 from config import load_secrets
 from firebase_auth import init_firebase, verify_firebase_token
 from search_routes import router as search_router
 from datetime import datetime
+import rag_pipeline as rp
+import tts as t
+from dotenv import load_dotenv
+
+load_dotenv(override=True)
 
 load_secrets()
 

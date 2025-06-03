@@ -16,6 +16,9 @@ const UserDropdown = () => {
     const photoUrl = user.photoURL || user.providerData?.[0]?.photoURL;
     if (!photoUrl) return null;
     console.log('Original photo URL:', photoUrl);
+    if (photoUrl.includes('googleusercontent.com')) {
+      return photoUrl.replace(/=s\d+-c/, '=s24-c');
+    }
     return photoUrl;
   };
 

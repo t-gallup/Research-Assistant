@@ -118,16 +118,6 @@ class PDFAudioSummarizer:
                     "role": "user",
                     "parts": [{"text": prompt}]
                 }])
-            # response = client.chat.completions.create(
-            #     model="gpt-3.5-turbo",
-            #     messages=[
-            #         {"role": "system", "content": "Create a concise summary \
-            #          of the following text, maintaining key information \
-            #          and context:"},
-            #         {"role": "user", "content": chunk}
-            #     ],
-            #     max_tokens=1000
-            # )
             if response.candidates and response.candidates[0].content:
                 return response.candidates[0].content.parts[0].text
             else:
@@ -234,7 +224,6 @@ class PDFAudioSummarizer:
             logger.error(f"Error processing file: {str(e)}")
             return {"success": False, "error": str(e), "chunk_summaries": []}
 
-# Usage example
 if __name__ == "__main__":
     summarizer = PDFAudioSummarizer(
         openai_api_key=os.getenv('OPENAI_API_KEY'),
